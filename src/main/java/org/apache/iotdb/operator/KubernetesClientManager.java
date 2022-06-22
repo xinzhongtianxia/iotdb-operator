@@ -19,15 +19,15 @@
 
 package org.apache.iotdb.operator;
 
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
 public class KubernetesClientManager {
 
   private final KubernetesClient client;
 
   private KubernetesClientManager() {
-    this.client = new DefaultKubernetesClient();
+    this.client = new KubernetesClientBuilder().build();
   }
 
   public static KubernetesClientManager getInstance() {

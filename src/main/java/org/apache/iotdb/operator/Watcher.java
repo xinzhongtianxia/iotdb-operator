@@ -19,17 +19,10 @@
 
 package org.apache.iotdb.operator;
 
-import org.apache.iotdb.operator.common.BaseEvent;
-import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.controller.ConfigNodeController;
-import org.apache.iotdb.operator.controller.DataNodeController;
 import org.apache.iotdb.operator.controller.IController;
-import org.apache.iotdb.operator.crd.CommonSpec;
-import org.apache.iotdb.operator.crd.CommonStatus;
 
-import io.fabric8.kubernetes.client.CustomResource;
-import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.WatcherException;
+import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,38 +33,20 @@ public class Watcher {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Watcher.class);
 
-  private final List<IController> controllers =
-      Arrays.asList(new ConfigNodeController(), new DataNodeController());
+  /** todo there should be an event Controller to collect and report events issued by kubernetes */
+  private final List<IController> controllers = Arrays.asList(new ConfigNodeController());
 
   public void start() {
+    SharedInformerFactory factory = KubernetesClientManager.getInstance().getClient().informers();
+
     for (IController controller : controllers) {
-      preWatch(controller);
-      watch(controller);
+      controller.startDispatch();
+      controller.startWatch(factory);
     }
-  }
 
-  private void preWatch(IController controller) {
-    controller.startDispatch();
-  }
+    factory.addSharedInformerEventListener(
+        exception -> LOGGER.error("exception occurred : ", exception));
 
-  private void watch(IController controller) {
-    KubernetesClient client = KubernetesClientManager.getInstance().getClient();
-    client
-        .resources(controller.getResourceClass(), controller.getResourceListClass())
-        .inNamespace(IoTDBOperatorConfig.getInstance().getNameSpace())
-        .watch(
-            new io.fabric8.kubernetes.client.Watcher<CustomResource<CommonSpec, CommonStatus>>() {
-              @Override
-              public void eventReceived(
-                  Action action, CustomResource<CommonSpec, CommonStatus> resource) {
-                BaseEvent event = new BaseEvent(action, controller.getKind(), resource);
-                controller.receiveEvent(event);
-              }
-
-              @Override
-              public void onClose(WatcherException cause) {
-                LOGGER.error("Watcher connection closed! kind = {}", controller.getKind(), cause);
-              }
-            });
+    factory.startAllRegisteredInformers();
   }
 }

@@ -38,4 +38,9 @@ public class Limits {
   public void setMemory(Integer memory) {
     this.memory = memory;
   }
+
+  @Override
+  public String toString() {
+    return "Limits{" + "cpu='" + cpu + '\'' + ", memory='" + memory + '\'' + '}';
+  }
 }

@@ -17,6 +17,15 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller;
+package org.apache.iotdb.operator.common;
 
-public class DataNodeController implements IController {}
+/**
+ * Indicating current status of iotdb roles, e.g. ConfigNode, Monitor, which can be used as lock in
+ * some conditions.
+ */
+public enum STATE {
+  // The operator is reconciling iotdb, other reconcilers should wait until READY or FAILED.
+  RECONCILING,
+  READY,
+  FAILED
+}

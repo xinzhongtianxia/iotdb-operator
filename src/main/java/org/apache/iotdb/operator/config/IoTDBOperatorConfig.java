@@ -19,6 +19,9 @@
 
 package org.apache.iotdb.operator.config;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Configurations for IoTDB Operator.
  *
@@ -27,30 +30,32 @@ package org.apache.iotdb.operator.config;
  * <ol>
  *   <li>Firstly, these configs are set in the helm .Values file.
  *   <li>Secondly, configs in .Values file will be translate to a ConfigMap.
- *   <li>Thirdly, the ConfigMap will be passed to the container as ENVs.
+ *   <li>Thirdly, the parameters in ConfigMap will be passed to the container as ENVs.
  * </ol>
  *
  * <p>So, we just need to read these configs from ENV.
  */
 public class IoTDBOperatorConfig {
 
-  private String version;
-  private String nameSpace;
+  private String version = "v1";
+  private String namespace = "iotdb";
+
+  private final List<String> supportedVersions = Arrays.asList("v1");
 
   public String getVersion() {
     return version;
   }
 
-  public String getNameSpace() {
-    return nameSpace;
+  public String getNamespace() {
+    return namespace;
   }
 
   public void setVersion(String version) {
     this.version = version;
   }
 
-  public void setNameSpace(String nameSpace) {
-    this.nameSpace = nameSpace;
+  public void setNamespace(String namespace) {
+    this.namespace = namespace;
   }
 
   private IoTDBOperatorConfig() {
@@ -58,8 +63,12 @@ public class IoTDBOperatorConfig {
   }
 
   private void readConfigFromEnv() {
-    setNameSpace(System.getenv("nameSpace"));
+    setNamespace(System.getenv("namespace"));
     setVersion(System.getenv("version"));
+  }
+
+  public List<String> getSupportedVersions() {
+    return supportedVersions;
   }
 
   public static IoTDBOperatorConfig getInstance() {

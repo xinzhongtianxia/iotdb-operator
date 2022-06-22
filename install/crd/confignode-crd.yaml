@@ -1,0 +1,128 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: confignodes.iotdb.apache.org
+spec:
+  group: iotdb.apache.org
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - name: READY
+          description: The desired number of ConfigNode replicas
+          jsonPath: .status.available
+          type: integer
+        - name: DESIRED
+          description: The desired number of ConfigNode replicas
+          jsonPath: .spec.replicas
+          type: integer
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  type: string
+                  pattern: .+:.+
+                  description: The docker image for ConfigNode.
+                imagePullSecret:
+                  type: string
+                  description: The reference to secret in the same namespace to use for pulling the confignode image.
+                replicas:
+                  type: integer
+                  minimum: 1
+                  description: The number of config nodes in this cluster
+                podDistributeStrategy:
+                  type: string
+                  enum:
+                    - preferred
+                    - required
+                  description: The pod's affinity rules. preferred means we will make a
+                    best effort attempt to assign pods to different nodes. required means
+                    we will not assign a pod to the node which has already been assigned to
+                    a confignode pod which belongs to the same iotdb-cluster.
+                limits:
+                  type: object
+                  properties:
+                    cpu:
+                      type: integer
+                      minimum: 1
+                    memory:
+                      type: integer
+                      minimum: 512
+                  required:
+                    - cpu
+                    - memory
+                  description: CPU cores and memory size (unit is MB) resources to reserve.
+                storage:
+                  type: object
+                  properties:
+                    storageClass:
+                      type: string
+                      description: The storage class to use for volume allocation.
+                    limit:
+                      type: integer
+                      description: The size, unit is GB, of the persistent volume claim (e.g. 100).
+                  required:
+                    - storageClass
+                iotdbConfig:
+                  type: object
+                  properties:
+                    configNodeProperties:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                      description: Any configurations in iotdb-confignode.properties could be added here,
+                        which will be read by confignode on starting. Generally, you need not set any of them
+                        and just let is as what it was. The default values int iotdb-confignode.properties will
+                        work well.
+              required:
+                - image
+                - replicas
+                - storage
+            status:
+              type: object
+              properties:
+                desired:
+                  type: integer
+                  description: Desired replicas.
+                available:
+                  type: integer
+                  description: Current available replicas.
+                state:
+                  type: string
+                  description: Current state of the confignode.
+              description: Simple message that indicates configNodes's current state.
+      subresources:
+        status: {}
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: confignodes
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: ConfigNode
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - cnode

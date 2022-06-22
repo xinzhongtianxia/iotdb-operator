@@ -19,4 +19,11 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-public abstract class ScaleReconciler implements IReconciler {}
+import org.apache.iotdb.operator.event.BaseEvent;
+
+/** Parent Reconciler for ScaleOut/ScaleIn/ScaleUp/ScaleDown */
+public abstract class ScaleReconciler implements IReconciler {
+
+  @Override
+  public void reconcile(BaseEvent event) {}
+}

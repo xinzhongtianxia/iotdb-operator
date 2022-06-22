@@ -19,10 +19,30 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import io.fabric8.kubernetes.client.CustomResource;
+import org.apache.iotdb.operator.event.BaseEvent;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/** All unexpected or unsupported events will be routed here. */
 public class DefaultReconciler implements IReconciler {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultReconciler.class);
+
+  private static DefaultReconciler instance = new DefaultReconciler();
+
+  private DefaultReconciler() {}
+
+  public static DefaultReconciler getInstance() {
+    return instance;
+  }
 
   @Override
-  public void reconcile(CustomResource event) {}
+  public void reconcile(BaseEvent event) {
+    LOGGER.warn("unrecognized event : \n{}", event);
+  }
+
+  @Override
+  public ReconcilerType getType() {
+    return ReconcilerType.DEFAULT;
+  }
 }

@@ -19,7 +19,11 @@
 
 package org.apache.iotdb.operator.common;
 
+/**
+ * Some configurations will be pass to pod's envs, which will be obtained at starting of containers.
+ */
 public enum EnvKey {
+  // for jvm options in confignode-env.sh
   IOTDB_MAX_HEAP_MEMORY_SIZE,
   IOTDB_MAX_DIRECT_MEMORY_SIZE;
 }

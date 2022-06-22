@@ -20,7 +20,14 @@
 package org.apache.iotdb.operator.crd;
 
 import io.fabric8.kubernetes.api.model.Namespaced;
-import io.fabric8.kubernetes.client.CustomResource;
+import io.fabric8.kubernetes.model.annotation.Group;
+import io.fabric8.kubernetes.model.annotation.Version;
 
-public class ConfigNode extends CustomResource<ConfigNodeSpec, CommonStatus>
-    implements Namespaced {}
+@Version(ConfigNode.VERSION)
+@Group(ConfigNode.GROUP)
+public class ConfigNode
+    extends io.fabric8.kubernetes.client.CustomResource<ConfigNodeSpec, CommonStatus>
+    implements Namespaced {
+  public static final String GROUP = "iotdb.apache.org";
+  public static final String VERSION = "v1";
+}
