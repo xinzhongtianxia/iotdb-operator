@@ -17,22 +17,25 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.common;
+package org.apache.iotdb.operator.event;
 
-public class Env {
-  private String key;
-  private String value;
+import org.apache.iotdb.operator.crd.Kind;
 
-  public Env(String key, String value) {
-    this.key = key;
-    this.value = value;
+import io.fabric8.kubernetes.client.Watcher.Action;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class EventManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventManager.class);
+  private static final EventManager instance = new EventManager();
+
+  public String getEventId(Action action, Kind kind, String resourceVersion) {
+    return action.name() + "-" + kind.getName() + "-" + resourceVersion;
   }
 
-  public String getKey() {
-    return key;
-  }
+  private EventManager() {}
 
-  public String getValue() {
-    return value;
+  public static EventManager getInstance() {
+    return instance;
   }
 }

@@ -22,7 +22,12 @@ package org.apache.iotdb.operator.crd;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * the configNodeProperties defined in ConfigNode-CRD, part of the Events from Kubernetes Server in
+ * JSON format, will be mapping to this Object By the Fabric8 Kubernetes Java Client.
+ */
 public class IoTDBConfigNodeConfig {
+
   private Map<String, Object> configNodeProperties = new HashMap<>();
 
   public Map<String, Object> getConfigNodeProperties() {

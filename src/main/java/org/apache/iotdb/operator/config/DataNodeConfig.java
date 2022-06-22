@@ -19,8 +19,14 @@
 
 package org.apache.iotdb.operator.config;
 
+import org.apache.iotdb.operator.crd.Kind;
+
 /** Configurations for IoTDB DataNode. */
-public class DataNodeConfig {
+public class DataNodeConfig extends CommonConfig {
+
+  public DataNodeConfig() {
+    super(Kind.DATA_NODE);
+  }
 
   public static DataNodeConfig getInstance() {
     return ConfigDescriptor.INSTANCE;

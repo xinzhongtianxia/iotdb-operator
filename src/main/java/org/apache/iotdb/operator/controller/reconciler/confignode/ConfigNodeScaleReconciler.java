@@ -21,10 +21,10 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.controller.reconciler.ScaleReconciler;
 
-import io.fabric8.kubernetes.client.CustomResource;
-
 public class ConfigNodeScaleReconciler extends ScaleReconciler {
 
   @Override
-  public void reconcile(CustomResource event) {}
+  public ReconcilerType getType() {
+    return null;
+  }
 }

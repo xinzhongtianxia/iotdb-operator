@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.operator.crd;
 
+/** Kubernetes Resource Kind */
 public enum Kind {
   CONFIG_NODE("ConfigNode"),
   DATA_NODE("DataNode"),

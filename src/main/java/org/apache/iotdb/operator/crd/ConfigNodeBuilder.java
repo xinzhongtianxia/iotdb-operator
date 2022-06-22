@@ -17,6 +17,30 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.crd;
 
-public abstract class UpgradeReconciler implements IReconciler {}
+public class ConfigNodeBuilder {
+
+  private CommonStatus commonStatus;
+
+  private ConfigNodeSpec spec;
+
+  public ConfigNodeBuilder() {}
+
+  public ConfigNodeBuilder withStatus(CommonStatus commonStatus) {
+    this.commonStatus = commonStatus;
+    return this;
+  }
+
+  public ConfigNodeBuilder withSpec(ConfigNodeSpec spec) {
+    this.spec = spec;
+    return this;
+  }
+
+  public ConfigNode build() {
+    ConfigNode configNode = new ConfigNode();
+    configNode.setStatus(commonStatus);
+    configNode.setSpec(spec);
+    return configNode;
+  }
+}

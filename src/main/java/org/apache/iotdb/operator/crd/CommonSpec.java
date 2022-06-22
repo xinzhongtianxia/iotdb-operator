@@ -19,4 +19,81 @@
 
 package org.apache.iotdb.operator.crd;
 
-public class CommonSpec {}
+/** Common specs in iotdb-role's CRDs. */
+public class CommonSpec {
+  private String image;
+  private String imagePullSecret;
+  private Integer replicas;
+  private String podDistributeStrategy = "required";
+  private Limits limits;
+  private Storage storage;
+
+  public String getImage() {
+    return image;
+  }
+
+  public void setImage(String image) {
+    this.image = image;
+  }
+
+  public String getImagePullSecret() {
+    return imagePullSecret;
+  }
+
+  public void setImagePullSecret(String imagePullSecret) {
+    this.imagePullSecret = imagePullSecret;
+  }
+
+  public Integer getReplicas() {
+    return replicas;
+  }
+
+  public void setReplicas(Integer replicas) {
+    this.replicas = replicas;
+  }
+
+  public String getPodDistributeStrategy() {
+    return podDistributeStrategy;
+  }
+
+  public void setPodDistributeStrategy(String podDistributeStrategy) {
+    this.podDistributeStrategy = podDistributeStrategy;
+  }
+
+  public Limits getLimits() {
+    return limits;
+  }
+
+  public void setLimits(Limits limits) {
+    this.limits = limits;
+  }
+
+  public Storage getStorage() {
+    return storage;
+  }
+
+  public void setStorage(Storage storage) {
+    this.storage = storage;
+  }
+
+  @Override
+  public String toString() {
+    return "CommonSpec{"
+        + "image='"
+        + image
+        + '\''
+        + ", imagePullSecret='"
+        + imagePullSecret
+        + '\''
+        + ", replicas="
+        + replicas
+        + ", podDistributeStrategy='"
+        + podDistributeStrategy
+        + '\''
+        + ", limits="
+        + limits
+        + ", storage="
+        + storage
+        + '}';
+  }
+}

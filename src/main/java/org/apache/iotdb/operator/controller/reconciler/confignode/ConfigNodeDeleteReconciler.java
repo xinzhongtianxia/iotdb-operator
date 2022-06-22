@@ -21,10 +21,10 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.controller.reconciler.DeleteReconciler;
 
-import io.fabric8.kubernetes.client.CustomResource;
-
 public class ConfigNodeDeleteReconciler extends DeleteReconciler {
 
   @Override
-  public void reconcile(CustomResource event) {}
+  public ReconcilerType getType() {
+    return null;
+  }
 }

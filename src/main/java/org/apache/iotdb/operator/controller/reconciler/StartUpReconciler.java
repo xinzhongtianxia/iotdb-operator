@@ -19,25 +19,22 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import io.fabric8.kubernetes.api.model.Service;
-import org.apache.iotdb.operator.KubernetesClientManager;
-import org.apache.iotdb.operator.common.Env;
 import org.apache.iotdb.operator.common.EnvKey;
 import org.apache.iotdb.operator.crd.CommonSpec;
-import org.apache.iotdb.operator.crd.CommonStatus;
-import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Limits;
+import org.apache.iotdb.operator.event.BaseEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.fabric8.kubernetes.client.CustomResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -46,79 +43,97 @@ public abstract class StartUpReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(StartUpReconciler.class);
 
   @Override
-  public void reconcile(CustomResource<CommonSpec, CommonStatus> event) {
-    ConfigNodeSpec configNodeSpec = (ConfigNodeSpec) event.getSpec();
+  public void reconcile(BaseEvent event) throws IOException {
 
-    // 1. Compute JVM memory
-    List<Env> JVMMemoryOptions = computeJVMMemory(configNodeSpec.getLimits());
+    CommonSpec commonSpec = getResourceSpec(event);
 
-    // 2. Create configuration files
-    Map<String, String> configFiles = constructConfig(event.getMetadata(), configNodeSpec);
+    ObjectMeta metadata = getMetadata(event);
 
-    // 3. Create ConfigMap
-    // todo add labels to declare it is an IoTDB resource.
-    ConfigMap configMap = createConfigMap(event.getMetadata(), Collections.emptyMap(), configFiles);
+    String name = metadata.getName().toLowerCase() + "-" + event.getKind().getName().toLowerCase();
+    String namespace = metadata.getNamespace();
 
-    // 4. Create services
-    String headlessServiceName =
-        createServices(event.getMetadata(), Collections.emptyMap(), configFiles);
+    LOGGER.info("{} : createConfigMap", event.getEventId());
+    ConfigMap configMap = createConfigMap(name, namespace, commonSpec);
 
-    // 5. Create StatefulSet and set its replicas to 1
-    StatefulSet statefulSet =
-        createStatefulSet(event.getMetadata(), configNodeSpec, JVMMemoryOptions,
-            Collections.emptyMap(), configMap, headlessServiceName);
+    LOGGER.info("{} : createServices", event.getEventId());
+    createServices(name, namespace, getLabels(name));
 
-    // 6. Call ScaleReconciler to scale replicas to desired state
-    scaleOut(statefulSet);
+    LOGGER.info("{} : createStatefulSet", event.getEventId());
+    createStatefulSet(
+        name,
+        namespace,
+        commonSpec,
+        computeJVMMemory(commonSpec.getLimits()),
+        getLabels(name),
+        configMap);
   }
 
+  /** Get MetaData from event. */
+  protected abstract ObjectMeta getMetadata(BaseEvent event);
+
+  /** Get ResourceSpec from event. */
+  protected abstract CommonSpec getResourceSpec(BaseEvent event);
+
   /**
-   * To compute best-practice JVM memory options. Generally, it should be a high percentage of the
-   * container total limit memory, which makes no waste of system resources.
+   * To compute best-practice JVM memory options. Generally, it should be a relatively high
+   * percentage of the container total memory, which makes no waste of system resources.
    *
    * @param resourceLimits in CRD
    * @return JVM memory options
    */
-  protected List<Env> computeJVMMemory(Limits resourceLimits) {
+  protected List<EnvVar> computeJVMMemory(Limits resourceLimits) {
     int memory = resourceLimits.getMemory();
     int maxHeapMemorySize = memory * 60 / 100;
     int maxDirectMemorySize = maxHeapMemorySize * 20 / 100;
-    return Arrays.asList(
-        new Env(EnvKey.IOTDB_MAX_HEAP_MEMORY_SIZE.name(), String.valueOf(maxHeapMemorySize)),
-        new Env(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name(), String.valueOf(maxDirectMemorySize)));
+
+    EnvVar heapMemoryEnv =
+        new EnvVarBuilder()
+            .withName(EnvKey.IOTDB_MAX_HEAP_MEMORY_SIZE.name())
+            .withValue(maxHeapMemorySize + "M")
+            .build();
+
+    EnvVar directMemoryEnv =
+        new EnvVarBuilder()
+            .withName(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name())
+            .withValue(maxDirectMemorySize + "M")
+            .build();
+
+    return Arrays.asList(heapMemoryEnv, directMemoryEnv);
   }
 
-  protected abstract Map<String, String> constructConfig(
-      ObjectMeta metadata, ConfigNodeSpec configNodeSpec);
+  /** Create files that need to be mounted to container via ConfigMap. */
+  protected abstract Map<String, String> createConfigFiles(
+      String name, String namespace, CommonSpec baseSpec) throws IOException;
 
-  protected ConfigMap createConfigMap(
-      ObjectMeta metadata, Map<String, String> labels, Map<String, String> configs) {
+  private ConfigMap createConfigMap(String name, String namespace, CommonSpec commonSpec)
+      throws IOException {
+
+    Map<String, String> configFiles = createConfigFiles(name, namespace, commonSpec);
+
     ConfigMap configMap =
         new ConfigMapBuilder()
             .withNewMetadata()
-            .withName(metadata.getName())
-            .withNamespace(metadata.getNamespace())
-            .withLabels(labels)
+            .withName(name)
+            .withNamespace(namespace)
+            .withLabels(getLabels(name))
             .endMetadata()
-            .withData(configs)
+            .withData(configFiles)
             .build();
-    KubernetesClientManager.getInstance()
-        .getClient()
-        .configMaps()
-        .inNamespace(metadata.getNamespace())
-        .create(configMap);
-    return configMap;
+    return kubernetesClient.configMaps().inNamespace(namespace).create(configMap);
   }
 
-  protected abstract StatefulSet createStatefulSet(ObjectMeta meta, ConfigNodeSpec configNodeSpec,
-      List<Env> envs, Map<String, String> labels, ConfigMap configMap,
-      String headlessServiceName);
+  /** Common labels that need to be attached to iotdb resources. */
+  protected abstract Map<String, String> getLabels(String name);
 
-  protected abstract void scaleOut(StatefulSet statefulSet);
+  protected abstract StatefulSet createStatefulSet(
+      String name,
+      String namespace,
+      CommonSpec commonSpec,
+      List<EnvVar> envs,
+      Map<String, String> labels,
+      ConfigMap configMap);
 
-  /**
-   * This function should return a service name which you want to used as as part of pod's FQDN.
-   */
-  protected abstract String createServices(
-      ObjectMeta metadata, Map<String, String> labels, Map<String, String> configs);
+  protected abstract void createServices(String name, String namespace, Map<String, String> labels);
+
+  protected void createIngress(String name, String namespace) {}
 }

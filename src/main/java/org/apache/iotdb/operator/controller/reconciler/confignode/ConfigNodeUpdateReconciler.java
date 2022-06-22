@@ -21,10 +21,10 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 
-import io.fabric8.kubernetes.client.CustomResource;
-
 public class ConfigNodeUpdateReconciler extends UpdateReconciler {
 
   @Override
-  public void reconcile(CustomResource event) {}
+  public ReconcilerType getType() {
+    return ReconcilerType.CONFIG_NODE_UPDATE;
+  }
 }

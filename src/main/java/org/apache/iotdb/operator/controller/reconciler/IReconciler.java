@@ -19,12 +19,31 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.crd.CommonSpec;
-import org.apache.iotdb.operator.crd.CommonStatus;
+import org.apache.iotdb.operator.KubernetesClientManager;
+import org.apache.iotdb.operator.event.BaseEvent;
 
-import io.fabric8.kubernetes.client.CustomResource;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
+import java.io.IOException;
+
+/** All reconcilers should be implements this interface. */
 public interface IReconciler {
+  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
 
-  public void reconcile(CustomResource<CommonSpec, CommonStatus> event);
+  /**
+   * The entry of reconciler
+   *
+   * @throws IOException
+   */
+  void reconcile(BaseEvent event) throws IOException;
+
+  /** return the specific type of this reconciler. */
+  ReconcilerType getType();
+
+  enum ReconcilerType {
+    DEFAULT,
+    CONFIG_NODE_STARTUP,
+    CONFIG_NODE_UPDATE,
+    CONFIG_NODE_STATEFUL_SET
+  }
 }

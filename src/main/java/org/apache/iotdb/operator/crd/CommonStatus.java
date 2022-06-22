@@ -19,17 +19,59 @@
 
 package org.apache.iotdb.operator.crd;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class CommonStatus {
-  private Map<String, Object> status = new HashMap<>();
 
-  public Map<String, Object> getStatus() {
-    return status;
+  /** numbers of available pods */
+  private int available;
+
+  /** numbers of desired pods defined in CRD */
+  private int desired;
+
+  /** current status, see {@link org.apache.iotdb.operator.common.STATE} */
+  private String state;
+
+  public CommonStatus() {}
+
+  public CommonStatus(int available, int desired, String state) {
+    this.available = available;
+    this.desired = desired;
+    this.state = state;
   }
 
-  public void setStatus(String name, Object value) {
-    status.put(name, value);
+  public String getState() {
+    return state;
+  }
+
+  public void setState(String state) {
+    this.state = state;
+  }
+
+  public int getAvailable() {
+    return available;
+  }
+
+  public void setAvailable(int available) {
+    this.available = available;
+  }
+
+  public int getDesired() {
+    return desired;
+  }
+
+  public void setDesired(int desired) {
+    this.desired = desired;
+  }
+
+  @Override
+  public String toString() {
+    return "CommonStatus{"
+        + "available="
+        + available
+        + ", desired="
+        + desired
+        + ", state='"
+        + state
+        + '\''
+        + '}';
   }
 }
