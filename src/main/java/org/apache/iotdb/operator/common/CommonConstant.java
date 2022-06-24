@@ -44,10 +44,13 @@ public class CommonConstant {
   public static final String VOLUME_SUFFIX_DATA = "-data";
   public static final String VOLUME_SUFFIX_CONFIG = "-config";
 
+  public static final String SERVICE_SUFFIX_EXTERNAL = "-external";
+
   // ==============Config Node ===============
 
   public static final String CONFIG_NODE_PROPERTY_FILE_NAME = "iotdb-confignode.properties";
   public static final String CONFIG_NODE_INIT_SCRIPT_FILE_NAME = "confignode-init.sh";
   public static final String CONFIG_NODE_RPC_ADDRESS = "rpc_address";
+  public static final String CONFIG_NODE_RPC_PORT = "rpc_port";
   public static final String CONFIG_NODE_TARGET_CONFIG_NODE = "target_confignode";
 }

@@ -35,7 +35,9 @@ public class ConfigNodeConfig extends CommonConfig {
 
   /** Commands to start confignode */
   private String startArgs =
-      "cp -rf /tmp/conf /iotdb/confignode/ && cd /iotdb/confignode/conf && sh confignode-init.sh";
+      "cp -rf /tmp/conf /iotdb/confignode/ "
+          + "&& cd /iotdb/confignode/conf "
+          + "&& sh confignode-init.sh";
 
   public void setRpcAddress(String rpcAddress) {
     this.rpcAddress = rpcAddress;
