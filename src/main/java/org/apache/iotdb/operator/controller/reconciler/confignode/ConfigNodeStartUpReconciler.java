@@ -49,6 +49,9 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.PodAffinityTerm;
 import io.fabric8.kubernetes.api.model.PodAffinityTermBuilder;
 import io.fabric8.kubernetes.api.model.PodAntiAffinity;
+import io.fabric8.kubernetes.api.model.PodDNSConfig;
+import io.fabric8.kubernetes.api.model.PodDNSConfigBuilder;
+import io.fabric8.kubernetes.api.model.PodDNSConfigOption;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
@@ -167,6 +170,9 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
     defaultConfigMap.put(CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE, targetConfigNode);
     defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_ADDRESS, configNodeConfig.getRpcAddress());
+
+    defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_PORT, configNodeConfig.getRpcPort());
+
     return defaultConfigMap;
   }
 
@@ -279,12 +285,16 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
                     .build())
             .build();
 
+    PodDNSConfig dnsConfig =
+        new PodDNSConfigBuilder().withOptions(new PodDNSConfigOption("ndots", "3")).build();
+
     PodSpec podSpec =
         new PodSpecBuilder()
             .withAffinity(affinity)
             .withTerminationGracePeriodSeconds(20L)
             .withContainers(Collections.singletonList(container))
             .withVolumes(volume)
+            .withDnsConfig(dnsConfig)
             .build();
 
     String imagePullSecret = configNodeSpec.getImagePullSecret();
@@ -500,7 +510,8 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
     Map<String, String> selector = getSelector(name);
 
-    Service service =
+    // for consensus among confignodes
+    Service internalService =
         new ServiceBuilder()
             .withNewMetadata()
             .withName(name)
@@ -509,11 +520,26 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .endMetadata()
             .withNewSpec()
             .withSelector(selector)
-            .withPorts(consensusServicePort, rpcServicePort, metricServicePort)
+            .withPorts(consensusServicePort)
             .endSpec()
             .build();
 
-    kubernetesClient.services().inNamespace(namespace).resource(service).create();
+    // for rpc from datanode and metrics from prometheus
+    Service externalService =
+        new ServiceBuilder()
+            .withNewMetadata()
+            .withName(name + CommonConstant.SERVICE_SUFFIX_EXTERNAL)
+            .withNamespace(namespace)
+            .withLabels(labels)
+            .endMetadata()
+            .withNewSpec()
+            .withSelector(selector)
+            .withPorts(rpcServicePort, metricServicePort)
+            .endSpec()
+            .build();
+
+    kubernetesClient.services().inNamespace(namespace).resource(internalService).create();
+    kubernetesClient.services().inNamespace(namespace).resource(externalService).create();
   }
 
   private Map<String, String> getSelector(String name) {

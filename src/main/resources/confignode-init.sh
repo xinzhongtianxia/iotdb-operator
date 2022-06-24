@@ -23,9 +23,11 @@ echo "== IOTDB PRE-START SCRIPTS =="
 echo "============================="
 
 CONFIG_NODE_PROP_FILE="iotdb-confignode.properties"
-CONFIG_NODE_START_FILE="../sbin/start-confignode.sh"
 CONFIG_NODE_ENV_FILE="confignode-env.sh"
 CONFIG_NODE_METRIC_FILE="iotdb-metric.yml"
+CONFIG_NODE_START_FILE="../sbin/start-confignode.sh"
+
+POD_FQDN=$(echo $(hostname -f))
 
 modify_properties() {
   if [ ! -f $CONFIG_NODE_PROP_FILE ]; then
@@ -33,9 +35,8 @@ modify_properties() {
     exit 1
   fi
 
-  pod_fqdn=$(echo $(hostname -f))
-  echo "set rpc_address to $pod_fqdn"
-  sed -i "s/^rpc_address.*/rpc_address=$pod_fqdn/" $CONFIG_NODE_PROP_FILE
+  echo "set rpc_address to $POD_FQDN"
+  sed -i "s/^rpc_address.*/rpc_address=$POD_FQDN/" $CONFIG_NODE_PROP_FILE
 }
 
 modify_JVM_options() {
@@ -63,3 +64,4 @@ modify_properties
 modify_JVM_options
 enable_metrics
 start_config_node
+
