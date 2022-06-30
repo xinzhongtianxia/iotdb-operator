@@ -28,7 +28,7 @@ import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.StatefulSetEvent;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import org.slf4j.Logger;
@@ -38,20 +38,27 @@ public class ConfigNodeStatefulSetReconciler implements IReconciler {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ConfigNodeStatefulSetReconciler.class);
 
-  @Override
-  public void reconcile(BaseEvent baseEvent) {
-    StatefulSetEvent statefulSetEvent = (StatefulSetEvent) baseEvent;
-    Action action = statefulSetEvent.getAction();
-    StatefulSet statefulSet = statefulSetEvent.getStatefulSet();
-    ObjectMeta metadata = statefulSet.getMetadata();
+  private final ObjectMeta metadata;
+  private final Action action;
+  private final StatefulSetStatus status;
+  private final StatefulSetSpec spec;
 
-    StatefulSetStatus status = statefulSet.getStatus();
+  public ConfigNodeStatefulSetReconciler(BaseEvent baseEvent) {
+    StatefulSetEvent statefulSetEvent = (StatefulSetEvent) baseEvent;
+    metadata = statefulSetEvent.getStatefulSet().getMetadata();
+    action = statefulSetEvent.getAction();
+    spec = statefulSetEvent.getStatefulSet().getSpec();
+    status = statefulSetEvent.getStatefulSet().getStatus();
+  }
+
+  @Override
+  public void reconcile() {
     if (status == null) {
       return;
     }
 
-    int available = statefulSet.getStatus().getAvailableReplicas();
-    int desired = statefulSet.getSpec().getReplicas();
+    int available = status.getAvailableReplicas();
+    int desired = spec.getReplicas();
 
     STATE state = available == desired ? STATE.READY : STATE.RECONCILING;
 

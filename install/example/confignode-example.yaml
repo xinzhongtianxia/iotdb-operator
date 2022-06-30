@@ -36,5 +36,5 @@ spec:
     limit: 1
   iotdbConfig:
     configNodeProperties:
-      test: teststr
+      test: test2222222tr
 

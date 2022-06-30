@@ -25,9 +25,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 
 public interface IController {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
 
-  /** Start the dispatch thread to route events where they should be. */
+  /** Start the dispatch thread to route events received from watcher to corresponding reconciler */
   void startDispatch();
 
   /** Start watching the resources which you concerned about. */
