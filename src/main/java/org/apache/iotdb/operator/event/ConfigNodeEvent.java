@@ -28,22 +28,19 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 
 public class ConfigNodeEvent extends BaseEvent {
 
-  private CustomResource<ConfigNodeSpec, CommonStatus> oldResource;
+  private final CustomResource<ConfigNodeSpec, CommonStatus> oldResource;
 
   private final CustomResource<ConfigNodeSpec, CommonStatus> resource;
 
-  public ConfigNodeEvent(
-      Action action, Kind kind, CustomResource<ConfigNodeSpec, CommonStatus> resource) {
-    super(action, kind, resource.getMetadata().getResourceVersion(), resource.getStatus());
-    this.resource = resource;
+  public ConfigNodeEvent(Action action, CustomResource<ConfigNodeSpec, CommonStatus> resource) {
+    this(action, resource, null);
   }
 
   public ConfigNodeEvent(
       Action action,
-      Kind kind,
       CustomResource<ConfigNodeSpec, CommonStatus> resource,
       CustomResource<ConfigNodeSpec, CommonStatus> oldResource) {
-    super(action, kind, resource.getMetadata().getResourceVersion(), resource.getStatus());
+    super(action, Kind.CONFIG_NODE, resource.getMetadata().getResourceVersion());
     this.resource = resource;
     this.oldResource = oldResource;
   }
@@ -59,5 +56,13 @@ public class ConfigNodeEvent extends BaseEvent {
   @Override
   public String toString() {
     return "ConfigNodeEvent{" + "resource=" + resource + ", eventId='" + eventId + '\'' + '}';
+  }
+
+  /** see https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-watch */
+  public boolean isSyntheticAdded() {
+    if (action == Action.ADDED && resource.getStatus() != null) {
+      return true;
+    }
+    return false;
   }
 }

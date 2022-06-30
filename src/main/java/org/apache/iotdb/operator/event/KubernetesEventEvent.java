@@ -17,22 +17,24 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.crd;
+package org.apache.iotdb.operator.event;
 
-/** Kubernetes Resource Kind */
-public enum Kind {
-  CONFIG_NODE("ConfigNode"),
-  DATA_NODE("DataNode"),
-  EVENT("Event"),
-  STATEFUL_SET("StatefulSet");
+import org.apache.iotdb.operator.crd.Kind;
 
-  private String name;
+import io.fabric8.kubernetes.api.model.Event;
+import io.fabric8.kubernetes.client.Watcher.Action;
 
-  Kind(String name) {
-    this.name = name;
+public class KubernetesEventEvent extends BaseEvent {
+
+  private final Event event;
+
+  public KubernetesEventEvent(Action action, Event event) {
+    super(action, Kind.EVENT, event.getMetadata().getResourceVersion());
+    this.event = event;
   }
 
-  public String getName() {
-    return name;
+  @Override
+  public String toString() {
+    return "KubernetesEventEvent{" + "event=" + event + ", eventId='" + eventId + '\'' + '}';
   }
 }

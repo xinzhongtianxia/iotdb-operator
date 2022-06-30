@@ -21,22 +21,20 @@ package org.apache.iotdb.operator.event;
 
 import org.apache.iotdb.operator.crd.Kind;
 
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.Watcher.Action;
 
 public class StatefulSetEvent extends BaseEvent {
   private final StatefulSet statefulSet;
 
-  private StatefulSet oldStatefulSet;
+  private final StatefulSet oldStatefulSet;
 
-  public StatefulSetEvent(Action action, Kind kind, StatefulSet statefulSet) {
-    super(action, kind, statefulSet.getMetadata().getResourceVersion(), null);
-    this.statefulSet = statefulSet;
+  public StatefulSetEvent(Action action, StatefulSet statefulSet) {
+    this(action, statefulSet, null);
   }
 
-  public StatefulSetEvent(Action action, Kind kind, StatefulSet newSts, StatefulSet oldSts) {
-    super(action, kind, newSts.getMetadata().getResourceVersion(), null);
+  public StatefulSetEvent(Action action, StatefulSet newSts, StatefulSet oldSts) {
+    super(action, Kind.STATEFUL_SET, newSts.getMetadata().getResourceVersion());
     this.statefulSet = newSts;
     this.oldStatefulSet = oldSts;
   }
@@ -47,24 +45,9 @@ public class StatefulSetEvent extends BaseEvent {
 
   @Override
   public String toString() {
-    ObjectMeta meta = statefulSet.getMetadata();
     return "StatefulSetEvent{"
-        + "statefulSetSpec="
-        + statefulSet.getSpec()
-        + "statefulSetStatus="
-        + statefulSet.getStatus()
-        + "namespace:name="
-        + meta.getNamespace()
-        + ":"
-        + meta.getName()
-        + "resourceVersion="
-        + meta.getResourceVersion()
-        + "uid="
-        + meta.getUid()
-        + "annotations="
-        + meta.getAnnotations()
-        + "labels="
-        + meta.getLabels()
+        + "statefulSet="
+        + statefulSet
         + ", eventId='"
         + eventId
         + '\''
