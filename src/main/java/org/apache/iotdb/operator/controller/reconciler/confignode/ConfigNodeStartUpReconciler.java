@@ -21,8 +21,8 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
+import org.apache.iotdb.operator.controller.reconciler.ReconcileUtils;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
-import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.BaseEvent;
@@ -49,6 +49,9 @@ import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.PodAffinityTerm;
 import io.fabric8.kubernetes.api.model.PodAffinityTermBuilder;
 import io.fabric8.kubernetes.api.model.PodAntiAffinity;
+import io.fabric8.kubernetes.api.model.PodDNSConfig;
+import io.fabric8.kubernetes.api.model.PodDNSConfigBuilder;
+import io.fabric8.kubernetes.api.model.PodDNSConfigOption;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodSpecBuilder;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
@@ -57,7 +60,6 @@ import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.ProbeBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
 import io.fabric8.kubernetes.api.model.ServicePort;
@@ -71,11 +73,9 @@ import io.fabric8.kubernetes.api.model.WeightedPodAffinityTermBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetBuilder;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetSpecBuilder;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetUpdateStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetUpdateStrategyBuilder;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetSpecBuilder;
 
 import java.io.File;
 import java.io.IOException;
@@ -90,21 +90,18 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeStartUpReconciler.class);
   private final ConfigNodeConfig configNodeConfig = ConfigNodeConfig.getInstance();
 
-  @Override
-  protected ObjectMeta getMetadata(BaseEvent event) {
-    return ((ConfigNodeEvent) event).getResource().getMetadata();
+  public ConfigNodeStartUpReconciler(BaseEvent event) {
+    super(
+        ((ConfigNodeEvent) event).getResource().getSpec(),
+        ((ConfigNodeEvent) event).getResource().getMetadata(),
+        event.getKind(),
+        event.getEventId());
   }
 
   @Override
-  protected CommonSpec getResourceSpec(BaseEvent event) {
-    return ((ConfigNodeEvent) event).getResource().getSpec();
-  }
-
-  @Override
-  protected Map<String, String> createConfigFiles(
-      String name, String namespace, CommonSpec baseSpec) throws IOException {
+  protected Map<String, String> createConfigFiles() throws IOException {
     Map<String, String> configFiles = new HashMap<>();
-    ConfigNodeSpec configNodeSpec = (ConfigNodeSpec) baseSpec;
+    ConfigNodeSpec configNodeSpec = (ConfigNodeSpec) commonSpec;
 
     // construct iotdb-confignode.properties
     Map<String, Object> properties = new HashMap<>();
@@ -115,21 +112,21 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     }
 
     Map<String, Object> configNodeDefaultConfigs =
-        constructDefaultConfigNodeConfigs(name, namespace);
+        constructDefaultConfigNodeConfigs(subResourceName, metadata.getNamespace());
     properties.putAll(configNodeDefaultConfigs);
 
-    StringBuilder sb = new StringBuilder();
+    StringBuilder sb = new StringBuilder(CommonConstant.GENERATE_BY_OPERATOR);
     properties.forEach(
         (k, v) -> {
-          sb.append(CommonConstant.GENERATE_BY_OPERATOR)
-              .append(CommonConstant.LINES_SEPARATOR)
+          sb.append(CommonConstant.LINES_SEPARATOR)
               .append(k)
               .append("=")
               .append(v)
               .append(CommonConstant.LINES_SEPARATOR);
         });
+
     String configNodeProperties = sb.toString();
-    LOGGER.debug("iotdb-confignode.properties : \n {}", configNodeProperties);
+    LOGGER.info("iotdb-confignode.properties : \n {}", configNodeProperties);
     configFiles.put(CommonConstant.CONFIG_NODE_PROPERTY_FILE_NAME, configNodeProperties);
 
     // read init script into ConfigMap
@@ -138,15 +135,15 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             getClass()
                 .getResourceAsStream(
                     File.separator + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME));
-    LOGGER.debug("confignode-init.sh : \n {}", scriptContent);
+    LOGGER.info("confignode-init.sh : \n {}", scriptContent);
     configFiles.put(CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
     return configFiles;
   }
 
   @Override
-  protected Map<String, String> getLabels(String name) {
+  protected Map<String, String> getLabels() {
     Map<String, String> labels = configNodeConfig.getDefaultLabels();
-    labels.put(CommonConstant.LABEL_KEY_APP_NAME, name);
+    labels.put(CommonConstant.LABEL_KEY_APP_NAME, subResourceName);
     return labels;
   }
 
@@ -167,24 +164,19 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
     defaultConfigMap.put(CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE, targetConfigNode);
     defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_ADDRESS, configNodeConfig.getRpcAddress());
+
+    defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_PORT, configNodeConfig.getRpcPort());
+
     return defaultConfigMap;
   }
 
   @Override
-  protected StatefulSet createStatefulSet(
-      String name,
-      String namespace,
-      CommonSpec configNodeSpec,
-      List<EnvVar> envs,
-      Map<String, String> labels,
-      ConfigMap configMap) {
+  protected StatefulSet createStatefulSet(ConfigMap configMap) {
 
     // metadata
-    ObjectMeta metadata = createMetadata(name, namespace, labels);
+    ObjectMeta metadata = createMetadata();
 
-    StatefulSetSpec statefulSetSpec =
-        createStatefulsetSpec(
-            (ConfigNodeSpec) configNodeSpec, envs, labels, configMap, name, namespace);
+    StatefulSetSpec statefulSetSpec = createStatefulsetSpec(configMap);
 
     StatefulSet statefulSet =
         new StatefulSetBuilder().withMetadata(metadata).withSpec(statefulSetSpec).build();
@@ -197,58 +189,41 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         .create();
   }
 
-  private StatefulSetSpec createStatefulsetSpec(
-      ConfigNodeSpec configNodeSpec,
-      List<EnvVar> envs,
-      Map<String, String> labels,
-      ConfigMap configMap,
-      String name,
-      String namespace) {
+  private StatefulSetSpec createStatefulsetSpec(ConfigMap configMap) {
 
-    PodTemplateSpec podTemplate =
-        createPodTemplate(configNodeSpec, envs, configMap, name, namespace);
+    PodTemplateSpec podTemplate = createPodTemplate(configMap);
 
-    PersistentVolumeClaim persistentVolumeClaim =
-        createPersistentVolumeClaimTemplate(name, configNodeSpec);
+    PersistentVolumeClaim persistentVolumeClaim = createPersistentVolumeClaimTemplate();
 
-    StatefulSetUpdateStrategy updateStrategy =
-        new StatefulSetUpdateStrategyBuilder()
-            .withNewRollingUpdate()
-            .withPartition(configNodeSpec.getReplicas())
-            .endRollingUpdate()
-            .build();
-
-    LabelSelector selector = new LabelSelectorBuilder().withMatchLabels(getSelector(name)).build();
+    LabelSelector selector = new LabelSelectorBuilder().withMatchLabels(getSelector()).build();
 
     StatefulSetSpec statefulSetSpec =
         new StatefulSetSpecBuilder()
             .withSelector(selector)
-            .withServiceName(name)
+            .withServiceName(subResourceName)
             .withTemplate(podTemplate)
-            .withReplicas(configNodeSpec.getReplicas())
+            .withReplicas(commonSpec.getReplicas())
             .withVolumeClaimTemplates(persistentVolumeClaim)
-            .withUpdateStrategy(updateStrategy)
             .build();
 
     return statefulSetSpec;
   }
 
   // pvc in sts
-  private PersistentVolumeClaim createPersistentVolumeClaimTemplate(
-      String name, ConfigNodeSpec configNodeSpec) {
+  private PersistentVolumeClaim createPersistentVolumeClaimTemplate() {
     Map<String, Quantity> resources = new HashMap<>(1);
     Quantity quantity =
         new Quantity(
-            configNodeSpec.getStorage().getLimit() + CommonConstant.RESOURCE_STORAGE_UNIT_G, null);
+            commonSpec.getStorage().getLimit() + CommonConstant.RESOURCE_STORAGE_UNIT_G, null);
     resources.put(CommonConstant.RESOURCE_STORAGE, quantity);
     PersistentVolumeClaim claim =
         new PersistentVolumeClaimBuilder()
             .withNewMetadata()
-            .withName(name + CommonConstant.VOLUME_SUFFIX_DATA)
+            .withName(subResourceName + CommonConstant.VOLUME_SUFFIX_DATA)
             .endMetadata()
             .withNewSpec()
             .withAccessModes(configNodeConfig.getPvcAccessMode())
-            .withStorageClassName(configNodeSpec.getStorage().getStorageClass())
+            .withStorageClassName(commonSpec.getStorage().getStorageClass())
             .withNewResources()
             .withLimits(resources)
             .withRequests(resources)
@@ -258,26 +233,24 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     return claim;
   }
 
-  private PodTemplateSpec createPodTemplate(
-      ConfigNodeSpec configNodeSpec,
-      List<EnvVar> envs,
-      ConfigMap configMap,
-      String name,
-      String namespace) {
+  private PodTemplateSpec createPodTemplate(ConfigMap configMap) {
     // affinity
-    Affinity affinity = createAffinity(namespace, configNodeSpec, getSelector(name));
+    Affinity affinity = createAffinity();
 
     // container
-    Container container = createConfigNodeContainer(name, envs, configNodeSpec);
+    Container container = createConfigNodeContainer();
 
     Volume volume =
         new VolumeBuilder()
-            .withName(name + CommonConstant.VOLUME_SUFFIX_CONFIG)
+            .withName(subResourceName + CommonConstant.VOLUME_SUFFIX_CONFIG)
             .withConfigMap(
                 new ConfigMapVolumeSourceBuilder()
                     .withName(configMap.getMetadata().getName())
                     .build())
             .build();
+
+    PodDNSConfig dnsConfig =
+        new PodDNSConfigBuilder().withOptions(new PodDNSConfigOption("ndots", "3")).build();
 
     PodSpec podSpec =
         new PodSpecBuilder()
@@ -285,9 +258,10 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withTerminationGracePeriodSeconds(20L)
             .withContainers(Collections.singletonList(container))
             .withVolumes(volume)
+            .withDnsConfig(dnsConfig)
             .build();
 
-    String imagePullSecret = configNodeSpec.getImagePullSecret();
+    String imagePullSecret = commonSpec.getImagePullSecret();
     if (imagePullSecret != null && !imagePullSecret.isEmpty()) {
       podSpec.setImagePullSecrets(
           Collections.singletonList(
@@ -297,7 +271,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     PodTemplateSpec podTemplateSpec =
         new PodTemplateSpecBuilder()
             .withNewMetadata()
-            .withLabels(getSelector(name))
+            .withLabels(getSelector())
             .endMetadata()
             .withSpec(podSpec)
             .build();
@@ -305,27 +279,29 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     return podTemplateSpec;
   }
 
-  private Container createConfigNodeContainer(
-      String name, List<EnvVar> envs, ConfigNodeSpec configNodeSpec) {
+  private Container createConfigNodeContainer() {
 
     Probe startupProbe = createStartupProbe();
     Probe readinessProbe = createReadinessProbe();
     Probe livenessProbe = createLivenessProbe();
 
-    ResourceRequirements resourceRequirements = createResourceLimits(configNodeSpec);
+    ResourceRequirements resourceRequirements =
+        ReconcileUtils.createResourceLimits(commonSpec.getLimits());
 
     List<ContainerPort> containerPorts = createConfigNodeContainerPort();
 
-    List<VolumeMount> volumeMounts = createVolumeMounts(name);
+    List<VolumeMount> volumeMounts = createVolumeMounts(subResourceName);
+
+    List<EnvVar> envs = computeJVMMemory();
 
     Container container =
         new ContainerBuilder()
-            .withName(name)
+            .withName(subResourceName)
             .withNewSecurityContext()
             .withPrivileged(true)
             .withRunAsUser(0L)
             .endSecurityContext()
-            .withImage(configNodeSpec.getImage())
+            .withImage(commonSpec.getImage())
             .withImagePullPolicy(CommonConstant.IMAGE_PULL_POLICY_IF_NOT_PRESENT)
             .withResources(resourceRequirements)
             .withStartupProbe(startupProbe)
@@ -386,17 +362,6 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     return Arrays.asList(consensusPort, rpcPort, metricPort);
   }
 
-  private ResourceRequirements createResourceLimits(ConfigNodeSpec configNodeSpec) {
-    Map<String, Quantity> resourceLimits = new HashMap<>(2);
-    int cpu = configNodeSpec.getLimits().getCpu();
-    int memory = configNodeSpec.getLimits().getMemory();
-    resourceLimits.put(CommonConstant.RESOURCE_CPU, new Quantity(String.valueOf(cpu)));
-    resourceLimits.put(
-        CommonConstant.RESOURCE_MEMORY,
-        new Quantity(memory + CommonConstant.RESOURCE_STORAGE_UNIT_M));
-    return new ResourceRequirementsBuilder().withLimits(resourceLimits).build();
-  }
-
   private Probe createStartupProbe() {
     return new ProbeBuilder()
         .withNewTcpSocket()
@@ -427,28 +392,27 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         .build();
   }
 
-  private ObjectMeta createMetadata(String name, String namespace, Map<String, String> labels) {
+  private ObjectMeta createMetadata() {
     return new ObjectMetaBuilder()
-        .withNamespace(namespace)
-        .withName(name)
-        .withLabels(labels)
+        .withNamespace(metadata.getNamespace())
+        .withName(subResourceName)
+        .withLabels(getLabels())
         .withDeletionGracePeriodSeconds(10L)
         .build();
   }
 
-  private Affinity createAffinity(
-      String namespace, ConfigNodeSpec configNodeSpec, Map<String, String> labels) {
+  private Affinity createAffinity() {
     PodAntiAffinity podAntiAffinity = new PodAntiAffinity();
-    if (configNodeSpec
+    if (commonSpec
         .getPodDistributeStrategy()
         .equals(CommonConstant.POD_AFFINITY_POLICY_PREFERRED)) {
       WeightedPodAffinityTerm weightedPodAffinityTerm =
           new WeightedPodAffinityTermBuilder()
               .withNewPodAffinityTerm()
               .withNewLabelSelector()
-              .withMatchLabels(labels)
+              .withMatchLabels(getLabels())
               .endLabelSelector()
-              .withNamespaces(namespace)
+              .withNamespaces(metadata.getNamespace())
               .withTopologyKey("kubernetes.io/hostname")
               .endPodAffinityTerm()
               .withWeight(100)
@@ -460,9 +424,9 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
       PodAffinityTerm podAffinityTerm =
           new PodAffinityTermBuilder()
               .withNewLabelSelector()
-              .withMatchLabels(labels)
+              .withMatchLabels(getSelector())
               .endLabelSelector()
-              .withNamespaces(namespace)
+              .withNamespaces(metadata.getNamespace())
               .withTopologyKey("kubernetes.io/hostname")
               .build();
       podAntiAffinity.setRequiredDuringSchedulingIgnoredDuringExecution(
@@ -473,7 +437,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   }
 
   @Override
-  protected void createServices(String name, String namespace, Map<String, String> labels) {
+  protected void createServices() {
     int consensusPort = configNodeConfig.getConsensusPort();
     ServicePort consensusServicePort =
         new ServicePortBuilder()
@@ -498,28 +462,53 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withName("metric")
             .build();
 
-    Map<String, String> selector = getSelector(name);
+    Map<String, String> selector = getSelector();
 
-    Service service =
+    // for consensus among confignodes
+    Service internalService =
         new ServiceBuilder()
             .withNewMetadata()
-            .withName(name)
-            .withNamespace(namespace)
-            .withLabels(labels)
+            .withName(subResourceName)
+            .withNamespace(metadata.getNamespace())
+            .withLabels(getLabels())
             .endMetadata()
             .withNewSpec()
             .withSelector(selector)
-            .withPorts(consensusServicePort, rpcServicePort, metricServicePort)
+            .withPorts(consensusServicePort)
+            .withClusterIP("None")
             .endSpec()
             .build();
 
-    kubernetesClient.services().inNamespace(namespace).resource(service).create();
+    // for rpc from datanode and metrics from prometheus
+    Service externalService =
+        new ServiceBuilder()
+            .withNewMetadata()
+            .withName(subResourceName + CommonConstant.SERVICE_SUFFIX_EXTERNAL)
+            .withNamespace(metadata.getNamespace())
+            .withLabels(getLabels())
+            .endMetadata()
+            .withNewSpec()
+            .withSelector(selector)
+            .withPorts(rpcServicePort, metricServicePort)
+            .endSpec()
+            .build();
+
+    kubernetesClient
+        .services()
+        .inNamespace(metadata.getNamespace())
+        .resource(internalService)
+        .create();
+    kubernetesClient
+        .services()
+        .inNamespace(metadata.getNamespace())
+        .resource(externalService)
+        .create();
   }
 
-  private Map<String, String> getSelector(String name) {
+  private Map<String, String> getSelector() {
     Map<String, String> selector = new HashMap<>(2);
     selector.put(CommonConstant.LABEL_KEY_APP_KIND, Kind.CONFIG_NODE.getName().toLowerCase());
-    selector.put(CommonConstant.LABEL_KEY_APP_NAME, name);
+    selector.put(CommonConstant.LABEL_KEY_APP_NAME, subResourceName);
     return selector;
   }
 

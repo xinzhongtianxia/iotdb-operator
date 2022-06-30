@@ -21,8 +21,8 @@ package org.apache.iotdb.operator.controller.reconciler;
 
 import org.apache.iotdb.operator.common.EnvKey;
 import org.apache.iotdb.operator.crd.CommonSpec;
+import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.crd.Limits;
-import org.apache.iotdb.operator.event.BaseEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
@@ -42,46 +42,37 @@ public abstract class StartUpReconciler implements IReconciler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StartUpReconciler.class);
 
-  @Override
-  public void reconcile(BaseEvent event) throws IOException {
+  protected final CommonSpec commonSpec;
+  protected final ObjectMeta metadata;
+  protected final String subResourceName;
+  protected final String eventId;
 
-    CommonSpec commonSpec = getResourceSpec(event);
-
-    ObjectMeta metadata = getMetadata(event);
-
-    String name = metadata.getName().toLowerCase() + "-" + event.getKind().getName().toLowerCase();
-    String namespace = metadata.getNamespace();
-
-    LOGGER.info("{} : createConfigMap", event.getEventId());
-    ConfigMap configMap = createConfigMap(name, namespace, commonSpec);
-
-    LOGGER.info("{} : createServices", event.getEventId());
-    createServices(name, namespace, getLabels(name));
-
-    LOGGER.info("{} : createStatefulSet", event.getEventId());
-    createStatefulSet(
-        name,
-        namespace,
-        commonSpec,
-        computeJVMMemory(commonSpec.getLimits()),
-        getLabels(name),
-        configMap);
+  public StartUpReconciler(CommonSpec commonSpec, ObjectMeta metadata, Kind kind, String eventId) {
+    this.commonSpec = commonSpec;
+    this.metadata = metadata;
+    subResourceName = metadata.getName().toLowerCase() + "-" + kind.getName().toLowerCase();
+    this.eventId = eventId;
   }
 
-  /** Get MetaData from event. */
-  protected abstract ObjectMeta getMetadata(BaseEvent event);
+  @Override
+  public void reconcile() throws IOException {
 
-  /** Get ResourceSpec from event. */
-  protected abstract CommonSpec getResourceSpec(BaseEvent event);
+    LOGGER.info("{} : createConfigMap", eventId);
+    ConfigMap configMap = createConfigMap();
+
+    LOGGER.info("{} : createServices", eventId);
+    createServices();
+
+    LOGGER.info("{} : createStatefulSet", eventId);
+    createStatefulSet(configMap);
+  }
 
   /**
    * To compute best-practice JVM memory options. Generally, it should be a relatively high
    * percentage of the container total memory, which makes no waste of system resources.
-   *
-   * @param resourceLimits in CRD
-   * @return JVM memory options
    */
-  protected List<EnvVar> computeJVMMemory(Limits resourceLimits) {
+  protected List<EnvVar> computeJVMMemory() {
+    Limits resourceLimits = commonSpec.getLimits();
     int memory = resourceLimits.getMemory();
     int maxHeapMemorySize = memory * 60 / 100;
     int maxDirectMemorySize = maxHeapMemorySize * 20 / 100;
@@ -102,38 +93,34 @@ public abstract class StartUpReconciler implements IReconciler {
   }
 
   /** Create files that need to be mounted to container via ConfigMap. */
-  protected abstract Map<String, String> createConfigFiles(
-      String name, String namespace, CommonSpec baseSpec) throws IOException;
+  protected abstract Map<String, String> createConfigFiles() throws IOException;
 
-  private ConfigMap createConfigMap(String name, String namespace, CommonSpec commonSpec)
-      throws IOException {
+  private ConfigMap createConfigMap() throws IOException {
 
-    Map<String, String> configFiles = createConfigFiles(name, namespace, commonSpec);
+    Map<String, String> configFiles = createConfigFiles();
 
     ConfigMap configMap =
         new ConfigMapBuilder()
             .withNewMetadata()
-            .withName(name)
-            .withNamespace(namespace)
-            .withLabels(getLabels(name))
+            .withName(subResourceName)
+            .withNamespace(metadata.getNamespace())
+            .withLabels(getLabels())
             .endMetadata()
             .withData(configFiles)
             .build();
-    return kubernetesClient.configMaps().inNamespace(namespace).create(configMap);
+    return kubernetesClient
+        .configMaps()
+        .inNamespace(metadata.getNamespace())
+        .resource(configMap)
+        .create();
   }
 
   /** Common labels that need to be attached to iotdb resources. */
-  protected abstract Map<String, String> getLabels(String name);
+  protected abstract Map<String, String> getLabels();
 
-  protected abstract StatefulSet createStatefulSet(
-      String name,
-      String namespace,
-      CommonSpec commonSpec,
-      List<EnvVar> envs,
-      Map<String, String> labels,
-      ConfigMap configMap);
+  protected abstract StatefulSet createStatefulSet(ConfigMap configMap);
 
-  protected abstract void createServices(String name, String namespace, Map<String, String> labels);
+  protected abstract void createServices();
 
   protected void createIngress(String name, String namespace) {}
 }

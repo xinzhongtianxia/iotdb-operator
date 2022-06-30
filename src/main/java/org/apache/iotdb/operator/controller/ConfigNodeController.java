@@ -51,16 +51,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ConfigNodeController implements IController {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeController.class);
 
-  private final ConfigNodeStartUpReconciler configNodeStartUpReconciler =
-      new ConfigNodeStartUpReconciler();
-  private final ConfigNodeDeleteReconciler configNodeDeleteReconciler =
-      new ConfigNodeDeleteReconciler();
-  private final ConfigNodeUpdateReconciler configNodeUpdateReconciler =
-      new ConfigNodeUpdateReconciler();
-  private final ConfigNodeStatefulSetReconciler configNodeStatefulSetReconciler =
-      new ConfigNodeStatefulSetReconciler();
-  private final DefaultReconciler defaultReconciler = DefaultReconciler.getInstance();
-
   private final BlockingQueue<ConfigNodeEvent> configNodeEvents = new LinkedBlockingQueue<>();
 
   private final BlockingQueue<StatefulSetEvent> statefulSetEvents = new LinkedBlockingQueue<>();
@@ -69,12 +59,12 @@ public class ConfigNodeController implements IController {
   private final ExecutorService statefulSetExecutor = Executors.newSingleThreadExecutor();
 
   private void receiveConfigNodeEvent(ConfigNodeEvent event) {
-    LOGGER.info("received event :\n {}", event);
+    LOGGER.debug("received event :\n {}", event);
     configNodeEvents.add(event);
   }
 
   private void receiveStatefulSetEvent(StatefulSetEvent event) {
-    LOGGER.info("received event :\n {}", event);
+    LOGGER.debug("received event :\n {}", event);
     statefulSetEvents.add(event);
   }
 
@@ -125,13 +115,13 @@ public class ConfigNodeController implements IController {
   public void reconcileConfigNode(ConfigNodeEvent event) throws IOException {
     IReconciler reconciler = getReconciler(event);
     LOGGER.info("{} begin to reconcile, eventId = {}", reconciler.getType(), event.getEventId());
-    reconciler.reconcile(event);
+    reconciler.reconcile();
     LOGGER.info("{} ended reconcile, eventId = {}", reconciler.getType(), event.getEventId());
   }
 
   public void reconcileStatefulSet(StatefulSetEvent event) {
     LOGGER.info("StatefulSetReconciler begin to reconcile, eventId = {}", event.getEventId());
-    configNodeStatefulSetReconciler.reconcile(event);
+    new ConfigNodeStatefulSetReconciler(event).reconcile();
     LOGGER.info("StatefulSetReconciler ended reconcile, eventId = {}", event.getEventId());
   }
 
@@ -139,13 +129,13 @@ public class ConfigNodeController implements IController {
     Action action = event.getAction();
     switch (action) {
       case ADDED:
-        return configNodeStartUpReconciler;
+        return new ConfigNodeStartUpReconciler(event);
       case DELETED:
-        return configNodeDeleteReconciler;
+        return new ConfigNodeDeleteReconciler();
       case MODIFIED:
-        return configNodeUpdateReconciler;
+        return new ConfigNodeUpdateReconciler(event);
       default:
-        return defaultReconciler;
+        return new DefaultReconciler(event);
     }
   }
 
@@ -171,8 +161,9 @@ public class ConfigNodeController implements IController {
           public void onAdd(ConfigNode obj) {
             ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, Kind.CONFIG_NODE, obj);
             if (event.isSyntheticAdded()) {
-              LOGGER.warn("received synthetic Added event : {}", this);
-              return;
+              LOGGER.warn("received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
+              // we should treat synthetic added events as modified events.
+              event = new ConfigNodeEvent(Action.MODIFIED, Kind.CONFIG_NODE, obj);
             }
             receiveConfigNodeEvent(event);
           }
@@ -202,7 +193,7 @@ public class ConfigNodeController implements IController {
           public void onAdd(StatefulSet obj) {
             StatefulSetEvent event = new StatefulSetEvent(Action.ADDED, Kind.STATEFUL_SET, obj);
             if (event.isSyntheticAdded()) {
-              LOGGER.warn("received synthetic Added event : {}", this);
+              LOGGER.warn("received synthetic Added event : \n {}", event);
               return;
             }
             receiveStatefulSetEvent(event);

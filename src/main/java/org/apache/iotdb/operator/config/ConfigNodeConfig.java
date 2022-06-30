@@ -19,7 +19,11 @@
 
 package org.apache.iotdb.operator.config;
 
+import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.crd.Kind;
+
+import java.util.Arrays;
+import java.util.List;
 
 /** Configurations for IoTDB ConfigNode. */
 public class ConfigNodeConfig extends CommonConfig {
@@ -33,9 +37,17 @@ public class ConfigNodeConfig extends CommonConfig {
   private String dataDir = "/iotdb/confignode/data";
   private String logDir = "/iotdb/confignode/logs";
 
+  private List<String> defaultProperties =
+      Arrays.asList(
+          CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE,
+          CommonConstant.CONFIG_NODE_RPC_ADDRESS,
+          CommonConstant.CONFIG_NODE_RPC_PORT);
+
   /** Commands to start confignode */
   private String startArgs =
-      "cp -rf /tmp/conf /iotdb/confignode/ && cd /iotdb/confignode/conf && sh confignode-init.sh";
+      "cp -rf /tmp/conf /iotdb/confignode/ "
+          + "&& cd /iotdb/confignode/conf "
+          + "&& sh confignode-init.sh";
 
   public void setRpcAddress(String rpcAddress) {
     this.rpcAddress = rpcAddress;
@@ -107,27 +119,7 @@ public class ConfigNodeConfig extends CommonConfig {
     private static ConfigNodeConfig INSTANCE = new ConfigNodeConfig();
   }
 
-  @Override
-  public String toString() {
-    return "ConfigNodeConfig{"
-        + "rpcAddress='"
-        + rpcAddress
-        + '\''
-        + ", rpcPort="
-        + rpcPort
-        + ", consensusPort="
-        + consensusPort
-        + ", metricPort="
-        + metricPort
-        + ", dataDir='"
-        + dataDir
-        + '\''
-        + ", logDir='"
-        + logDir
-        + '\''
-        + ", startArgs='"
-        + startArgs
-        + '\''
-        + '}';
+  public List<String> getDefaultProperties() {
+    return defaultProperties;
   }
 }
