@@ -22,11 +22,8 @@ package org.apache.iotdb.operator.event;
 import org.apache.iotdb.operator.crd.Kind;
 
 import io.fabric8.kubernetes.client.Watcher.Action;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class EventManager {
-  private static final Logger LOGGER = LoggerFactory.getLogger(EventManager.class);
   private static final EventManager instance = new EventManager();
 
   public String getEventId(Action action, Kind kind, String resourceVersion) {
