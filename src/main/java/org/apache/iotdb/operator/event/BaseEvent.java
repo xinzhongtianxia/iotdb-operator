@@ -19,7 +19,6 @@
 
 package org.apache.iotdb.operator.event;
 
-import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.Kind;
 
 import io.fabric8.kubernetes.client.Watcher.Action;
@@ -29,14 +28,12 @@ public class BaseEvent {
   protected final Kind kind;
   protected final String resourceVersion;
   protected final String eventId;
-  protected final CommonStatus status;
 
-  public BaseEvent(Action action, Kind kind, String resourceVersion, CommonStatus status) {
+  public BaseEvent(Action action, Kind kind, String resourceVersion) {
     this.action = action;
     this.kind = kind;
     this.resourceVersion = resourceVersion;
     this.eventId = EventManager.getInstance().getEventId(action, kind, resourceVersion);
-    this.status = status;
   }
 
   public Action getAction() {
@@ -49,13 +46,5 @@ public class BaseEvent {
 
   public String getEventId() {
     return eventId;
-  }
-
-  /** see https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-watch */
-  public boolean isSyntheticAdded() {
-    if (action == Action.ADDED && status != null) {
-      return true;
-    }
-    return false;
   }
 }
