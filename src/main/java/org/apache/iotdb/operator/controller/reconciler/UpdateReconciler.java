@@ -19,22 +19,15 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.crd.CommonSpec;
-import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.crd.Limits;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public abstract class UpdateReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UpdateReconciler.class);
@@ -139,6 +132,7 @@ public abstract class UpdateReconciler implements IReconciler {
    * We should always compare the specification of new-resource in event with the resource in *
    * Kubernetes. Do not use the specification of old-resource in event, it does not always represent
    * the real state of currently running confignode (or datanode).
+   *
    * @see #needUpdateStatefulSet
    */
   protected abstract boolean needUpdateConfigMap(ConfigMap configMap) throws IOException;

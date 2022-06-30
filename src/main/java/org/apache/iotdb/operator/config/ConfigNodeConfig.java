@@ -19,10 +19,11 @@
 
 package org.apache.iotdb.operator.config;
 
-import java.util.Arrays;
-import java.util.List;
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.crd.Kind;
+
+import java.util.Arrays;
+import java.util.List;
 
 /** Configurations for IoTDB ConfigNode. */
 public class ConfigNodeConfig extends CommonConfig {
@@ -121,5 +122,4 @@ public class ConfigNodeConfig extends CommonConfig {
   public List<String> getDefaultProperties() {
     return defaultProperties;
   }
-
 }

@@ -19,12 +19,6 @@
 
 package org.apache.iotdb.operator.controller.reconciler.confignode;
 
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
-import java.util.Collections;
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.ReconcileUtils;
@@ -37,15 +31,19 @@ import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.LocalObjectReference;
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.apps.StatefulSet;
+import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -142,7 +140,10 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
     }
 
     if (needUpdate) {
-      LOGGER.info("configmap changed, old: {} \n new (without default properties) : {}", properties, newProperties);
+      LOGGER.info(
+          "configmap changed, old: {} \n new (without default properties) : {}",
+          properties,
+          newProperties);
     }
 
     return needUpdate;

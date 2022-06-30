@@ -19,10 +19,11 @@
 
 package org.apache.iotdb.operator.crd;
 
+import org.apache.iotdb.operator.config.ConfigNodeConfig;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.iotdb.operator.config.ConfigNodeConfig;
 
 /**
  * the configNodeProperties defined in ConfigNode-CRD, part of the Events from Kubernetes Server in
