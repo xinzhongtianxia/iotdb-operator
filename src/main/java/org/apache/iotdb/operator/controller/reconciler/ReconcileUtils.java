@@ -19,11 +19,25 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.event.BaseEvent;
+import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.crd.Limits;
 
-/** Parent Reconciler for ScaleOut/ScaleIn/ScaleUp/ScaleDown */
-public abstract class ScaleReconciler implements IReconciler {
+import io.fabric8.kubernetes.api.model.Quantity;
+import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 
-  @Override
-  public void reconcile(BaseEvent event) {}
+import java.util.HashMap;
+import java.util.Map;
+
+public class ReconcileUtils {
+  public static ResourceRequirements createResourceLimits(Limits limits) {
+    Map<String, Quantity> resourceLimits = new HashMap<>(2);
+    int cpu = limits.getCpu();
+    int memoryMb = limits.getMemory();
+    resourceLimits.put(CommonConstant.RESOURCE_CPU, new Quantity(String.valueOf(cpu)));
+    resourceLimits.put(
+        CommonConstant.RESOURCE_MEMORY,
+        new Quantity(memoryMb + CommonConstant.RESOURCE_STORAGE_UNIT_M));
+    return new ResourceRequirementsBuilder().withLimits(resourceLimits).build();
+  }
 }

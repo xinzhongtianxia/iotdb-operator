@@ -19,28 +19,47 @@
 
 package org.apache.iotdb.operator.crd;
 
-public class Limits {
-  private Integer cpu;
-  private Integer memory;
+import java.util.Objects;
 
-  public Integer getCpu() {
+public class Limits {
+  private int cpu;
+  private int memory;
+
+  public int getCpu() {
     return cpu;
   }
 
-  public void setCpu(Integer cpu) {
+  public void setCpu(int cpu) {
     this.cpu = cpu;
   }
 
-  public Integer getMemory() {
+  public int getMemory() {
     return memory;
   }
 
-  public void setMemory(Integer memory) {
+  public void setMemory(int memory) {
     this.memory = memory;
   }
 
   @Override
   public String toString() {
     return "Limits{" + "cpu='" + cpu + '\'' + ", memory='" + memory + '\'' + '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Limits limits = (Limits) o;
+    return cpu == limits.cpu && memory == limits.memory;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(cpu, memory);
   }
 }

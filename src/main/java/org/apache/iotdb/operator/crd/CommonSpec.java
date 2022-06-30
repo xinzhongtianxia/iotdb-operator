@@ -23,7 +23,7 @@ package org.apache.iotdb.operator.crd;
 public class CommonSpec {
   private String image;
   private String imagePullSecret;
-  private Integer replicas;
+  private int replicas;
   private String podDistributeStrategy = "required";
   private Limits limits;
   private Storage storage;
@@ -44,11 +44,11 @@ public class CommonSpec {
     this.imagePullSecret = imagePullSecret;
   }
 
-  public Integer getReplicas() {
+  public int getReplicas() {
     return replicas;
   }
 
-  public void setReplicas(Integer replicas) {
+  public void setReplicas(int replicas) {
     this.replicas = replicas;
   }
 

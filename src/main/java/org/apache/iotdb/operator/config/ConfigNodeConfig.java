@@ -19,6 +19,9 @@
 
 package org.apache.iotdb.operator.config;
 
+import java.util.Arrays;
+import java.util.List;
+import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.crd.Kind;
 
 /** Configurations for IoTDB ConfigNode. */
@@ -32,6 +35,12 @@ public class ConfigNodeConfig extends CommonConfig {
   private int metricPort = 9091;
   private String dataDir = "/iotdb/confignode/data";
   private String logDir = "/iotdb/confignode/logs";
+
+  private List<String> defaultProperties =
+      Arrays.asList(
+          CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE,
+          CommonConstant.CONFIG_NODE_RPC_ADDRESS,
+          CommonConstant.CONFIG_NODE_RPC_PORT);
 
   /** Commands to start confignode */
   private String startArgs =
@@ -109,27 +118,8 @@ public class ConfigNodeConfig extends CommonConfig {
     private static ConfigNodeConfig INSTANCE = new ConfigNodeConfig();
   }
 
-  @Override
-  public String toString() {
-    return "ConfigNodeConfig{"
-        + "rpcAddress='"
-        + rpcAddress
-        + '\''
-        + ", rpcPort="
-        + rpcPort
-        + ", consensusPort="
-        + consensusPort
-        + ", metricPort="
-        + metricPort
-        + ", dataDir='"
-        + dataDir
-        + '\''
-        + ", logDir='"
-        + logDir
-        + '\''
-        + ", startArgs='"
-        + startArgs
-        + '\''
-        + '}';
+  public List<String> getDefaultProperties() {
+    return defaultProperties;
   }
+
 }

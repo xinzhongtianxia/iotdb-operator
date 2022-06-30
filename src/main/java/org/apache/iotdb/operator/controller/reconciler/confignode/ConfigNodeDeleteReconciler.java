@@ -24,6 +24,9 @@ import org.apache.iotdb.operator.controller.reconciler.DeleteReconciler;
 public class ConfigNodeDeleteReconciler extends DeleteReconciler {
 
   @Override
+  public void reconcile() {}
+
+  @Override
   public ReconcilerType getType() {
     return null;
   }
