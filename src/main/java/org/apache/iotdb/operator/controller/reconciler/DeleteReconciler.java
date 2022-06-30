@@ -19,10 +19,8 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.event.BaseEvent;
-
 public abstract class DeleteReconciler implements IReconciler {
 
   @Override
-  public void reconcile(BaseEvent event) {}
+  public void reconcile() {}
 }

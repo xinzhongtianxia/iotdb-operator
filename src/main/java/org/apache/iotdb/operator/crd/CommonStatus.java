@@ -22,17 +22,17 @@ package org.apache.iotdb.operator.crd;
 public class CommonStatus {
 
   /** numbers of available pods */
-  private int available;
+  private Integer available;
 
   /** numbers of desired pods defined in CRD */
-  private int desired;
+  private Integer desired;
 
   /** current status, see {@link org.apache.iotdb.operator.common.STATE} */
   private String state;
 
   public CommonStatus() {}
 
-  public CommonStatus(int available, int desired, String state) {
+  public CommonStatus(Integer available, Integer desired, String state) {
     this.available = available;
     this.desired = desired;
     this.state = state;
@@ -46,19 +46,19 @@ public class CommonStatus {
     this.state = state;
   }
 
-  public int getAvailable() {
+  public Integer getAvailable() {
     return available;
   }
 
-  public void setAvailable(int available) {
+  public void setAvailable(Integer available) {
     this.available = available;
   }
 
-  public int getDesired() {
+  public Integer getDesired() {
     return desired;
   }
 
-  public void setDesired(int desired) {
+  public void setDesired(Integer desired) {
     this.desired = desired;
   }
 

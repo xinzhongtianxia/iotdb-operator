@@ -28,16 +28,14 @@ import org.slf4j.LoggerFactory;
 public class DefaultReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultReconciler.class);
 
-  private static DefaultReconciler instance = new DefaultReconciler();
+  private final BaseEvent event;
 
-  private DefaultReconciler() {}
-
-  public static DefaultReconciler getInstance() {
-    return instance;
+  public DefaultReconciler(BaseEvent event) {
+    this.event = event;
   }
 
   @Override
-  public void reconcile(BaseEvent event) {
+  public void reconcile() {
     LOGGER.warn("unrecognized event : \n{}", event);
   }
 

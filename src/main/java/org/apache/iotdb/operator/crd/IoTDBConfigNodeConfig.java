@@ -19,8 +19,11 @@
 
 package org.apache.iotdb.operator.crd;
 
+import org.apache.iotdb.operator.config.ConfigNodeConfig;
+
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * the configNodeProperties defined in ConfigNode-CRD, part of the Events from Kubernetes Server in
@@ -28,13 +31,34 @@ import java.util.Map;
  */
 public class IoTDBConfigNodeConfig {
 
-  private Map<String, Object> configNodeProperties = new HashMap<>();
+  private final Map<String, Object> configNodeProperties = new HashMap<>();
 
   public Map<String, Object> getConfigNodeProperties() {
     return configNodeProperties;
   }
 
   public void setConfigNodeProperties(String name, Object value) {
+    // user need not to set some default configurations that should be set by IoTDB-Operator
+    if (ConfigNodeConfig.getInstance().getDefaultProperties().contains(name)) {
+      return;
+    }
     configNodeProperties.put(name, value);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    IoTDBConfigNodeConfig that = (IoTDBConfigNodeConfig) o;
+    return configNodeProperties.equals(that.configNodeProperties);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(configNodeProperties);
   }
 }

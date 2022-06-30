@@ -19,6 +19,8 @@
 
 package org.apache.iotdb.operator.crd;
 
+import java.util.Objects;
+
 public class Storage {
   private String storageClass;
   private String limit;
@@ -37,5 +39,22 @@ public class Storage {
 
   public void setLimit(String limit) {
     this.limit = limit;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Storage storage = (Storage) o;
+    return storageClass.equals(storage.storageClass) && limit.equals(storage.limit);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(storageClass, limit);
   }
 }
