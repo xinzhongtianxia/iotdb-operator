@@ -17,22 +17,22 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.crd;
+package org.apache.iotdb.operator.controller.reconciler.datanode;
 
-/** Kubernetes Resource Kind */
-public enum Kind {
-  CONFIG_NODE("ConfigNode"),
-  DATA_NODE("DataNode"),
-  EVENT("Event"),
-  STATEFUL_SET("StatefulSet");
+import org.apache.iotdb.operator.controller.reconciler.IReconciler;
+import org.apache.iotdb.operator.event.BaseEvent;
 
-  private String name;
+import java.io.IOException;
 
-  Kind(String name) {
-    this.name = name;
-  }
+public class DataNodeStatefulSetReconciler implements IReconciler {
 
-  public String getName() {
-    return name;
+  public DataNodeStatefulSetReconciler(BaseEvent event) {}
+
+  @Override
+  public void reconcile() throws IOException {}
+
+  @Override
+  public ReconcilerType getType() {
+    return null;
   }
 }

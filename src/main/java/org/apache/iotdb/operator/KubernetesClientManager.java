@@ -19,6 +19,9 @@
 
 package org.apache.iotdb.operator;
 
+import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
+
+import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 
@@ -27,7 +30,11 @@ public class KubernetesClientManager {
   private final KubernetesClient client;
 
   private KubernetesClientManager() {
-    this.client = new KubernetesClientBuilder().build();
+    String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+    this.client =
+        new KubernetesClientBuilder()
+            .withConfig(new ConfigBuilder().withNamespace(namespace).build())
+            .build();
   }
 
   public static KubernetesClientManager getInstance() {
