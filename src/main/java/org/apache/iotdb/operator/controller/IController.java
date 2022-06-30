@@ -19,9 +19,6 @@
 
 package org.apache.iotdb.operator.controller;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
-
-import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 
 public interface IController {
