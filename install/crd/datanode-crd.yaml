@@ -1,0 +1,139 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: datanodes.iotdb.apache.org
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: iotdb.apache.org
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      # AdditionalPrinterColumns specifies additional columns returned in Table output.
+      additionalPrinterColumns:
+        - name: Desired replicas
+          description: The desired number of DataNode replicas
+          jsonPath: .spec.replicas
+          type: integer
+          priority: 1
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  type: string
+                  pattern: .+:.+
+                  description: The docker image for DataNode.
+                imagePullSecret:
+                  type: string
+                  description: The reference to secret in the same namespace to use for pulling the datanode image.
+                replicas:
+                  type: integer
+                  minimum: 1
+                  description: The number of data nodes in this cluster
+                podDistributeStrategy:
+                  type: string
+                  enum:
+                    - preferred
+                    - required
+                  description: The pod's affinity rules. preferred means we will make a
+                    best effort attempt to assign pods to different nodes. required means
+                    we will not assign a pod to the node which has already been assigned to
+                    a confignode pod which belongs to the same iotdb-cluster.
+                limits:
+                  type: object
+                  properties:
+                    cpu:
+                      type: integer
+                    memory:
+                      type: integer
+                  description: CPU and memory resources to reserve.
+                service:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - NodePort
+                        - ClusterIP
+                        - LoadBalancer
+                      description: The type of RPC port serves IoTDB-client, defaults to ClusterIP.
+                    nodePort:
+                      type: integer
+                      minimum: 30000
+                      maximum: 32767
+                      description: The node port to expose RPC service, if service type is not NodePort, this param will be omitted.
+                    externalTrafficPolicy:
+                      type: string
+                      enum:
+                        - Local
+                        - Cluster
+                      description: Specifies whether the service routes external traffic to node-local or cluster-wide endpoints. `Cluster`
+                        may cause a second hop to another node and obscures the client source IP. `Local` avoids a second hop
+                        for LoadBalancer and Nodeport type services and preserves the client source IP (when supported by the infrastructure).
+                        If unspecified, Kubernetes will use `Cluster` as the default.This field can be used only with `LoadBalancer`
+                        or `NodePort` type service.
+                storage:
+                  type: object
+                  properties:
+                    storageClass:
+                      type: string
+                      description: The storage class to use for volume allocation.
+                    limit:
+                      type: integer
+                      description: The size of the persistent volume claim (e.g. 100Gi).
+                  required:
+                    - storageClass
+                iotdbConfig:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                  description: Any configurations in iotdb-engine.properties could be added here,
+                    which will be read by datanode on starting. Generally, you need not set any of them
+                    and just let is as what it was. The default values int iotdb-engine.properties will
+                    work well.
+              required:
+                - image
+                - replicas
+                - storage
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              description: Simple message that indicates configNodes's current state.
+      subresources:
+        status: {}
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: datanodes
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: DataNode
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+      - dnode
