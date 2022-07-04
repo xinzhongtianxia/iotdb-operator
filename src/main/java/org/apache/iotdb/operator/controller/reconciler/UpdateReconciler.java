@@ -42,11 +42,11 @@ public abstract class UpdateReconciler implements IReconciler {
 
   @Override
   public void reconcile() throws IOException {
-    boolean isConfigMapUpdated = updateConfigMap();
-    updateStatefulSet(isConfigMapUpdated);
+    ConfigMap configMap = updateConfigMap();
+    updateStatefulSet(configMap);
   }
 
-  protected boolean updateConfigMap() throws IOException {
+  protected ConfigMap updateConfigMap() throws IOException {
 
     ConfigMap configMap =
         kubernetesClient
@@ -66,16 +66,16 @@ public abstract class UpdateReconciler implements IReconciler {
           .replace();
 
       LOGGER.info("end updating configmap : {}:{}", meta.getNamespace(), subResourceName);
-      return true;
+    } else {
+      LOGGER.info(
+          "configmap not changed, no need to update ConfigMap {}:{}",
+          meta.getNamespace(),
+          subResourceName);
     }
-    LOGGER.info(
-        "configmap not changed, no need to update ConfigMap {}:{}",
-        meta.getNamespace(),
-        subResourceName);
-    return false;
+    return configMap;
   }
 
-  protected void updateStatefulSet(boolean isConfigMapUpdated) {
+  protected void updateStatefulSet(ConfigMap configMap) {
     // todo consider rolling-update with pause and resume
 
     StatefulSet statefulSet =
@@ -86,10 +86,10 @@ public abstract class UpdateReconciler implements IReconciler {
             .withName(subResourceName)
             .require();
 
-    if (needUpdateStatefulSet(isConfigMapUpdated, statefulSet)) {
+    if (needUpdateStatefulSet(configMap, statefulSet)) {
       LOGGER.info("begin updating statefulset : {}:{}", meta.getNamespace(), subResourceName);
 
-      internalUpdateStatefulSet(statefulSet);
+      internalUpdateStatefulSet(configMap, statefulSet);
       kubernetesClient
           .apps()
           .statefulSets()
@@ -112,7 +112,7 @@ public abstract class UpdateReconciler implements IReconciler {
 
   protected abstract Object getOldStatus();
 
-  protected abstract void internalUpdateStatefulSet(StatefulSet statefulSet);
+  protected abstract void internalUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet);
 
   protected abstract void internalUpdateConfigMap(ConfigMap configMap) throws IOException;
 
@@ -121,12 +121,11 @@ public abstract class UpdateReconciler implements IReconciler {
    * Kubernetes. Do not use the specification of old-resource in event, it does not always represent
    * the real state of currently running confignode (or datanode). For example, if we received an
    * modification event but failed to update the statefulset or configmap, then the modification
-   * event reached again, for supplementation, we will get a specification int the event equals to
+   * event reached again, for supplementation, we will get a specification in the event equals to
    * the current running confignode (or datanode), though the current statefulset's stated is not
    * what we desired.
    */
-  protected abstract boolean needUpdateStatefulSet(
-      boolean isConfigMapUpdated, StatefulSet statefulSet);
+  protected abstract boolean needUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet);
 
   /**
    * We should always compare the specification of new-resource in event with the resource in *

@@ -39,7 +39,6 @@ public class IoTDBOperatorConfig {
 
   private String version = "v1";
   private String namespace = "iotdb";
-
   private final List<String> supportedVersions = Arrays.asList("v1");
 
   public String getVersion() {
