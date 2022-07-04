@@ -53,7 +53,11 @@ public class ConfigNodeController implements IController {
   private final ExecutorService configNodeExecutor = Executors.newSingleThreadExecutor();
 
   private void receiveConfigNodeEvent(ConfigNodeEvent event) {
-    LOGGER.debug("received event :\n {}", event);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("received event :\n {}", event);
+    } else {
+      LOGGER.info("received event : {}", event.getEventId());
+    }
     configNodeEvents.add(event);
   }
 
