@@ -17,33 +17,11 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.exception;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
+public class ResourceAlreadyExistException extends Exception {
 
-import io.fabric8.kubernetes.client.KubernetesClient;
-
-import java.io.IOException;
-
-/** All reconcilers should implement this interface. */
-public interface IReconciler {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
-
-  /**
-   * The entry of reconciler
-   *
-   * @throws IOException
-   */
-  void reconcile() throws IOException;
-
-  /** return the specific type of this reconciler. */
-  ReconcilerType getType();
-
-  enum ReconcilerType {
-    DEFAULT,
-    CONFIG_NODE_STARTUP,
-    CONFIG_NODE_UPDATE,
-    CONFIG_NODE_STATEFUL_SET,
-    CONFIG_NODE_DELETE
+  public ResourceAlreadyExistException(String message) {
+    super(message);
   }
 }

@@ -53,7 +53,11 @@ public class ConfigNodeController implements IController {
   private final ExecutorService configNodeExecutor = Executors.newSingleThreadExecutor();
 
   private void receiveConfigNodeEvent(ConfigNodeEvent event) {
-    LOGGER.debug("received event :\n {}", event);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("received event :\n {}", event);
+    } else {
+      LOGGER.info("received event : {}", event.getEventId());
+    }
     configNodeEvents.add(event);
   }
 
@@ -74,7 +78,7 @@ public class ConfigNodeController implements IController {
       case ADDED:
         return new ConfigNodeStartUpReconciler(event);
       case DELETED:
-        return new ConfigNodeDeleteReconciler();
+        return new ConfigNodeDeleteReconciler(event);
       case MODIFIED:
         return new ConfigNodeUpdateReconciler(event);
       default:

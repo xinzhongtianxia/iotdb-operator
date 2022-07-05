@@ -31,13 +31,13 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected void internalUpdateStatefulSet(StatefulSet statefulSet) {}
+  protected void internalUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {}
 
   @Override
   protected void internalUpdateConfigMap(ConfigMap configMap) throws IOException {}
 
   @Override
-  protected boolean needUpdateStatefulSet(boolean isConfigMapUpdated, StatefulSet statefulSet) {
+  protected boolean needUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
     return false;
   }
 

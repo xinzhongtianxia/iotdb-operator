@@ -27,6 +27,7 @@ import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.util.DigestUtil;
 
 import org.apache.commons.io.IOUtils;
 import io.fabric8.kubernetes.api.model.Affinity;
@@ -142,7 +143,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
   @Override
   protected Map<String, String> getLabels() {
-    Map<String, String> labels = configNodeConfig.getDefaultLabels();
+    Map<String, String> labels = configNodeConfig.getAdditionalLabels();
     labels.put(CommonConstant.LABEL_KEY_APP_NAME, subResourceName);
     return labels;
   }
@@ -176,7 +177,16 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     // metadata
     ObjectMeta metadata = createMetadata();
 
-    StatefulSetSpec statefulSetSpec = createStatefulsetSpec(configMap);
+    StatefulSetSpec statefulSetSpec = createStatefulsetSpec();
+
+    // Here we attach an annotation to statefulset's podTemplate to let it triggers a rolling update
+    // for the pods when there is only data changed in ConfigMap.
+    String cmSha = DigestUtil.sha(configMap.toString());
+    statefulSetSpec
+        .getTemplate()
+        .getMetadata()
+        .getAnnotations()
+        .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
 
     StatefulSet statefulSet =
         new StatefulSetBuilder().withMetadata(metadata).withSpec(statefulSetSpec).build();
@@ -189,9 +199,9 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         .create();
   }
 
-  private StatefulSetSpec createStatefulsetSpec(ConfigMap configMap) {
+  private StatefulSetSpec createStatefulsetSpec() {
 
-    PodTemplateSpec podTemplate = createPodTemplate(configMap);
+    PodTemplateSpec podTemplate = createPodTemplate();
 
     PersistentVolumeClaim persistentVolumeClaim = createPersistentVolumeClaimTemplate();
 
@@ -233,7 +243,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     return claim;
   }
 
-  private PodTemplateSpec createPodTemplate(ConfigMap configMap) {
+  private PodTemplateSpec createPodTemplate() {
     // affinity
     Affinity affinity = createAffinity();
 
@@ -243,10 +253,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     Volume volume =
         new VolumeBuilder()
             .withName(subResourceName + CommonConstant.VOLUME_SUFFIX_CONFIG)
-            .withConfigMap(
-                new ConfigMapVolumeSourceBuilder()
-                    .withName(configMap.getMetadata().getName())
-                    .build())
+            .withConfigMap(new ConfigMapVolumeSourceBuilder().withName(subResourceName).build())
             .build();
 
     PodDNSConfig dnsConfig =

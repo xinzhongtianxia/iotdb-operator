@@ -17,33 +17,30 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.util;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.codec.binary.Hex;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
-import java.io.IOException;
+public class DigestUtil {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DigestUtil.class);
 
-/** All reconcilers should implement this interface. */
-public interface IReconciler {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
-
-  /**
-   * The entry of reconciler
-   *
-   * @throws IOException
-   */
-  void reconcile() throws IOException;
-
-  /** return the specific type of this reconciler. */
-  ReconcilerType getType();
-
-  enum ReconcilerType {
-    DEFAULT,
-    CONFIG_NODE_STARTUP,
-    CONFIG_NODE_UPDATE,
-    CONFIG_NODE_STATEFUL_SET,
-    CONFIG_NODE_DELETE
+  public static String sha(String str) {
+    if (str == null) {
+      return null;
+    }
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      digest.update(str.getBytes());
+      byte[] byteArray = digest.digest();
+      return Hex.encodeHexString(byteArray);
+    } catch (NoSuchAlgorithmException e) {
+      LOGGER.error(e.getMessage(), e);
+    }
+    return null;
   }
 }

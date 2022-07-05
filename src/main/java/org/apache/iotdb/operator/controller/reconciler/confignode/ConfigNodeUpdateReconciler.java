@@ -29,6 +29,7 @@ import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.crd.Limits;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.util.DigestUtil;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
@@ -85,7 +86,7 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected void internalUpdateStatefulSet(StatefulSet statefulSet) {
+  protected void internalUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
     int replicas = newSpec.getReplicas();
     String image = newSpec.getImage();
     String imageSecret = newSpec.getImagePullSecret();
@@ -107,6 +108,15 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
         // there is only one container in the pod
         .get(0)
         .setResources(resourceRequirements);
+
+    // update configMapSha256
+    String cmSha = DigestUtil.sha(configMap.getData().toString());
+    statefulSet
+        .getSpec()
+        .getTemplate()
+        .getMetadata()
+        .getAnnotations()
+        .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
   }
 
   @Override
@@ -150,7 +160,7 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected boolean needUpdateStatefulSet(boolean isConfigMapUpdated, StatefulSet statefulSet) {
+  protected boolean needUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
     boolean needUpdate = false;
 
     StatefulSetSpec statefulSetSpec = statefulSet.getSpec();
@@ -188,7 +198,15 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
           newSpec.getReplicas());
     }
 
-    if (isConfigMapUpdated) {
+    String newCmSha = DigestUtil.sha(configMap.getData().toString());
+    String oldCmSha =
+        statefulSet
+            .getSpec()
+            .getTemplate()
+            .getMetadata()
+            .getAnnotations()
+            .get(CommonConstant.ANNOTATION_KEY_SHA);
+    if (!newCmSha.equals(oldCmSha)) {
       LOGGER.info("configmap updated, so we also need to update the statefulset");
       needUpdate = true;
     }
