@@ -78,7 +78,7 @@ public class ConfigNodeController implements IController {
       case ADDED:
         return new ConfigNodeStartUpReconciler(event);
       case DELETED:
-        return new ConfigNodeDeleteReconciler();
+        return new ConfigNodeDeleteReconciler(event);
       case MODIFIED:
         return new ConfigNodeUpdateReconciler(event);
       default:

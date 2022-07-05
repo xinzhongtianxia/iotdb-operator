@@ -20,14 +20,36 @@
 package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.controller.reconciler.DeleteReconciler;
+import org.apache.iotdb.operator.crd.ConfigNode;
+import org.apache.iotdb.operator.crd.Kind;
+import org.apache.iotdb.operator.event.BaseEvent;
+import org.apache.iotdb.operator.event.ConfigNodeEvent;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigNodeDeleteReconciler extends DeleteReconciler {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeDeleteReconciler.class);
 
-  @Override
-  public void reconcile() {}
+  public ConfigNodeDeleteReconciler(BaseEvent baseEvent) {
+    super(
+        ((ConfigNodeEvent) baseEvent).getResource().getSpec(),
+        ((ConfigNodeEvent) baseEvent).getResource().getMetadata(),
+        Kind.CONFIG_NODE);
+  }
 
   @Override
   public ReconcilerType getType() {
-    return null;
+    return ReconcilerType.CONFIG_NODE_DELETE;
+  }
+
+  @Override
+  protected void deleteCustomResource() {
+    kubernetesClient
+        .resources(ConfigNode.class)
+        .inNamespace(metadata.getNamespace())
+        .withName(metadata.getName())
+        .delete();
+    LOGGER.info("confignode deleted : {}", metadata.getName());
   }
 }

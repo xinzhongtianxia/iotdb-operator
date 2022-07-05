@@ -46,7 +46,7 @@ public class DataNodeController implements IController {
       case ADDED:
         return new DataNodeStartUpReconciler(event);
       case DELETED:
-        return new DataNodeDeleteReconciler();
+        return new DataNodeDeleteReconciler(event);
       case MODIFIED:
         return new DataNodeUpdateReconciler(event);
       default:
