@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -18,14 +17,21 @@
 # under the License.
 #
 
-# create and delete pvs in random path, just for local debug
-# the dir path should be consistent with that in pv.yaml
+# docker build context is the root path of the repository
 
-dir=$RANDOM
-rm -rf /Users/gaoyang/work/k8s/pvs/*
-for (( i = 1; i < 5; i++ )); do
-    mkdir /Users/gaoyang/work/k8s/pvs/pv$dir$i
-    sed -i "" "s/pv.*$i$/pvs\/pv$dir$i/g" pv.yaml
-done
+FROM openjdk:11-jre-slim
 
-kubectl delete pv --ignore-not-found=true local-1 local-2 local-3 local-4 && kubectl apply -f pv.yaml && kubectl apply -f confignode-example.yaml
+ADD target/apache-iotdb-operator-*.zip /
+
+RUN apt update \
+  && apt install dos2unix procps unzip -y \
+  && unzip /apache-iotdb-operator-*.zip -d /apache-iotdb-operator \
+  && rm /apache-iotdb-operator-*.zip \
+  && ls \
+  && mv /apache-iotdb-operator /iotdb-operator \
+  && apt remove unzip -y \
+  && apt autoremove -y \
+  && apt purge --auto-remove -y \
+  && apt clean -y
+RUN dos2unix /iotdb-operator/sbin/start-operator.sh
+ENTRYPOINT ["/iotdb-operator/sbin/start-operator.sh"]

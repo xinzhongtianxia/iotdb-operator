@@ -80,6 +80,7 @@ import io.fabric8.kubernetes.api.model.apps.StatefulSetSpecBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -135,7 +136,8 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         IOUtils.toString(
             getClass()
                 .getResourceAsStream(
-                    File.separator + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME));
+                    File.separator + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME),
+            Charset.defaultCharset());
     LOGGER.info("confignode-init.sh : \n {}", scriptContent);
     configFiles.put(CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
     return configFiles;

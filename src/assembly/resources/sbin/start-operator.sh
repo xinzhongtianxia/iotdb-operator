@@ -18,14 +18,36 @@
 # under the License.
 #
 
-# create and delete pvs in random path, just for local debug
-# the dir path should be consistent with that in pv.yaml
 
-dir=$RANDOM
-rm -rf /Users/gaoyang/work/k8s/pvs/*
-for (( i = 1; i < 5; i++ )); do
-    mkdir /Users/gaoyang/work/k8s/pvs/pv$dir$i
-    sed -i "" "s/pv.*$i$/pvs\/pv$dir$i/g" pv.yaml
+if [ -z "${OPERATOR_HOME}" ]; then
+  export OPERATOR_HOME="$(cd "`dirname "$0"`"/..; pwd)"
+  echo "$OPERATOR_HOME"
+fi
+
+MAIN_CLASS=org.apache.iotdb.operator.Main
+
+LIB_PATH=${OPERATOR_HOME}/lib
+
+CLASSPATH=""
+for f in ${LIB_PATH}/*.jar; do
+  CLASSPATH=${CLASSPATH}":"$f
 done
 
-kubectl delete pv --ignore-not-found=true local-1 local-2 local-3 local-4 && kubectl apply -f pv.yaml && kubectl apply -f confignode-example.yaml
+
+if [ -n "$JAVA_HOME" ]; then
+    for java in "$JAVA_HOME"/bin/amd64/java "$JAVA_HOME"/bin/java; do
+        if [ -x "$java" ]; then
+            JAVA="$java"
+            break
+        fi
+    done
+else
+    JAVA=java
+fi
+
+## read memory(mb) from env
+if [ -n "$memory" ]; then
+  xmx=$(($memory*3/4))
+  JAVA="$JAVA -Xmx${xmx}m"
+fi
+exec "$JAVA" -cp "$CLASSPATH" "$MAIN_CLASS"
