@@ -31,7 +31,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv306871
+    path: /Users/gaoyang/work/k8s/pvs/pv139031
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -52,7 +52,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv306872
+    path: /Users/gaoyang/work/k8s/pvs/pv139032
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -73,7 +73,28 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv306873
+    path: /Users/gaoyang/work/k8s/pvs/pv139033
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: Exists
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-4
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local
+  local:
+    path: /Users/gaoyang/work/k8s/pvs/pv139034
   nodeAffinity:
     required:
       nodeSelectorTerms:
