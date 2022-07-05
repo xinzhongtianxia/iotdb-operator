@@ -46,8 +46,8 @@ public class CommonConfig {
 
   private String pvcAccessMode = "ReadWriteOnce";
 
-  /** some labels will be added to every resource that created by operator for further selectors. */
-  private Map<String, String> defaultLabels = new HashMap<>();
+  /** some labels will be added to each resource that created by operator for further selectors. */
+  private Map<String, String> additionalLabels = new HashMap<>();
 
   public void setDataSubPath(String dataSubPath) {
     this.dataSubPath = dataSubPath;
@@ -69,8 +69,8 @@ public class CommonConfig {
     this.pvcAccessMode = pvcAccessMode;
   }
 
-  public void setDefaultLabels(Map<String, String> defaultLabels) {
-    this.defaultLabels = defaultLabels;
+  public void setAdditionalLabels(Map<String, String> additionalLabels) {
+    this.additionalLabels = additionalLabels;
   }
 
   public String getPvcAccessMode() {
@@ -94,12 +94,11 @@ public class CommonConfig {
   }
 
   public CommonConfig(Kind kind) {
-    defaultLabels.put(
-        CommonConstant.LABEL_KEY_IOTDB_OPERATOR, IoTDBOperatorConfig.getInstance().getVersion());
-    defaultLabels.put(CommonConstant.LABEL_KEY_APP_KIND, kind.getName().toLowerCase());
+    additionalLabels.put(CommonConstant.LABEL_KEY_MANAGED_BY, "iotdb");
+    additionalLabels.put(CommonConstant.LABEL_KEY_APP_KIND, kind.getName().toLowerCase());
   }
 
-  public Map<String, String> getDefaultLabels() {
-    return defaultLabels;
+  public Map<String, String> getAdditionalLabels() {
+    return additionalLabels;
   }
 }

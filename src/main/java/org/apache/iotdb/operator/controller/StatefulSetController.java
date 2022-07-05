@@ -55,10 +55,14 @@ public class StatefulSetController implements IController {
   private void receiveStatefulSetEvent(StatefulSetEvent event) {
     // filter events irrelevant to IoTDB
     Map<String, String> labels = event.getStatefulSet().getMetadata().getLabels();
-    if (!labels.containsKey(CommonConstant.LABEL_KEY_IOTDB_OPERATOR)) {
+    if (!labels.containsKey(CommonConstant.LABEL_KEY_MANAGED_BY)) {
       return;
     }
-    LOGGER.debug("received event : \n {}", event);
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("received event :\n {}", event);
+    } else {
+      LOGGER.info("received event : {}", event.getEventId());
+    }
     statefulSetEvents.add(event);
   }
 
