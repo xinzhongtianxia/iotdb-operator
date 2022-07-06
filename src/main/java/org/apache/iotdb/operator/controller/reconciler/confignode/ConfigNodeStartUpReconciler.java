@@ -24,7 +24,6 @@ import org.apache.iotdb.operator.config.ConfigNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.ReconcileUtils;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
-import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
 import org.apache.iotdb.operator.util.DigestUtil;
@@ -207,7 +206,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
     PersistentVolumeClaim persistentVolumeClaim = createPersistentVolumeClaimTemplate();
 
-    LabelSelector selector = new LabelSelectorBuilder().withMatchLabels(getSelector()).build();
+    LabelSelector selector = new LabelSelectorBuilder().withMatchLabels(getLabels()).build();
 
     StatefulSetSpec statefulSetSpec =
         new StatefulSetSpecBuilder()
@@ -224,9 +223,13 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   // pvc in sts
   private PersistentVolumeClaim createPersistentVolumeClaimTemplate() {
     Map<String, Quantity> resources = new HashMap<>(1);
+
+    // here we need to set format to null, or it will produce abnormal errors. I am not sure if it
+    // is kubernetes's bug.
     Quantity quantity =
         new Quantity(
             commonSpec.getStorage().getLimit() + CommonConstant.RESOURCE_STORAGE_UNIT_G, null);
+
     resources.put(CommonConstant.RESOURCE_STORAGE, quantity);
     PersistentVolumeClaim claim =
         new PersistentVolumeClaimBuilder()
@@ -280,7 +283,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     PodTemplateSpec podTemplateSpec =
         new PodTemplateSpecBuilder()
             .withNewMetadata()
-            .withLabels(getSelector())
+            .withLabels(getLabels())
             .endMetadata()
             .withSpec(podSpec)
             .build();
@@ -433,7 +436,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
       PodAffinityTerm podAffinityTerm =
           new PodAffinityTermBuilder()
               .withNewLabelSelector()
-              .withMatchLabels(getSelector())
+              .withMatchLabels(getLabels())
               .endLabelSelector()
               .withNamespaces(metadata.getNamespace())
               .withTopologyKey("kubernetes.io/hostname")
@@ -471,8 +474,6 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withName("metric")
             .build();
 
-    Map<String, String> selector = getSelector();
-
     // for consensus among confignodes
     Service internalService =
         new ServiceBuilder()
@@ -482,7 +483,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withLabels(getLabels())
             .endMetadata()
             .withNewSpec()
-            .withSelector(selector)
+            .withSelector(getLabels())
             .withPorts(consensusServicePort)
             .withClusterIP("None")
             .endSpec()
@@ -497,7 +498,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withLabels(getLabels())
             .endMetadata()
             .withNewSpec()
-            .withSelector(selector)
+            .withSelector(getLabels())
             .withPorts(rpcServicePort, metricServicePort)
             .endSpec()
             .build();
@@ -512,13 +513,6 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         .inNamespace(metadata.getNamespace())
         .resource(externalService)
         .create();
-  }
-
-  private Map<String, String> getSelector() {
-    Map<String, String> selector = new HashMap<>(2);
-    selector.put(CommonConstant.LABEL_KEY_APP_KIND, Kind.CONFIG_NODE.getName().toLowerCase());
-    selector.put(CommonConstant.LABEL_KEY_APP_NAME, subResourceName);
-    return selector;
   }
 
   @Override
