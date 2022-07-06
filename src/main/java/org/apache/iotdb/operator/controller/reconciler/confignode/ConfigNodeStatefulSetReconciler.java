@@ -34,6 +34,14 @@ import io.fabric8.kubernetes.client.Watcher.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This reconciler is only responsible for
+ *
+ * <ol>
+ *   <li>computing and patching cnode's status when there is a status change happened to sts.
+ *   <li>cleaning pvcs created by sts when the sts has been deleted
+ * </ol>
+ */
 public class ConfigNodeStatefulSetReconciler implements IReconciler {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ConfigNodeStatefulSetReconciler.class);
@@ -53,19 +61,20 @@ public class ConfigNodeStatefulSetReconciler implements IReconciler {
 
   @Override
   public void reconcile() {
-    if (status == null) {
-      return;
-    }
-
-    int available = status.getAvailableReplicas();
-    int desired = spec.getReplicas();
-
-    STATE state = available == desired ? STATE.READY : STATE.RECONCILING;
-
-    String stsName = metadata.getName();
-    String configNodeName = stsName.substring(0, stsName.lastIndexOf("-"));
 
     if (action == Action.MODIFIED) {
+      if (status == null) {
+        return;
+      }
+
+      int available = status.getAvailableReplicas();
+      int desired = spec.getReplicas();
+
+      STATE state = available == desired ? STATE.READY : STATE.RECONCILING;
+
+      String stsName = metadata.getName();
+      String configNodeName = stsName.substring(0, stsName.lastIndexOf("-"));
+
       // For now, we just get out StatefulSet's status and patch it to ConfigNode.
       ConfigNode configNodeWithOnlyStatus =
           new ConfigNodeBuilder()
@@ -83,10 +92,16 @@ public class ConfigNodeStatefulSetReconciler implements IReconciler {
           .withName(configNodeName)
           .patchStatus(configNodeWithOnlyStatus);
     } else if (action == Action.DELETED) {
-      // todo handle StatefulSet-DELETED events
-
+      // we should delete pvc created by the statefulset, or the pvc and its bounded pv will never
+      // be removed.
+      kubernetesClient
+          .persistentVolumeClaims()
+          .inNamespace(metadata.getNamespace())
+          .withLabels(metadata.getLabels())
+          .delete();
+      LOGGER.info("pvc deleted : labels = {}", metadata.getLabels());
     } else {
-
+      // do nothing
     }
   }
 
