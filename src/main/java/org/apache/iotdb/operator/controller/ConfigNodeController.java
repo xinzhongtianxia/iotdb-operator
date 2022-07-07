@@ -30,8 +30,6 @@ import org.apache.iotdb.operator.event.ConfigNodeEvent;
 
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
-import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,34 +106,35 @@ public class ConfigNodeController implements IController {
   }
 
   @Override
-  public void startWatch(SharedInformerFactory factory) {
-    SharedIndexInformer<ConfigNode> configNodeInformer =
-        factory.sharedIndexInformerFor(ConfigNode.class, 0L);
+  public void startWatch() {
+    kubernetesClient
+        .resources(ConfigNode.class)
+        .inNamespace(namespace)
+        .inform(
+            new ResourceEventHandler<ConfigNode>() {
+              @Override
+              public void onAdd(ConfigNode obj) {
+                ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, obj);
+                if (event.isSyntheticAdded()) {
+                  LOGGER.warn(
+                      "received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
+                  // we should treat synthetic added events as modified events.
+                  event = new ConfigNodeEvent(Action.MODIFIED, obj);
+                }
+                receiveConfigNodeEvent(event);
+              }
 
-    configNodeInformer.addEventHandler(
-        new ResourceEventHandler<ConfigNode>() {
-          @Override
-          public void onAdd(ConfigNode obj) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, obj);
-            if (event.isSyntheticAdded()) {
-              LOGGER.warn("received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
-              // we should treat synthetic added events as modified events.
-              event = new ConfigNodeEvent(Action.MODIFIED, obj);
-            }
-            receiveConfigNodeEvent(event);
-          }
+              @Override
+              public void onUpdate(ConfigNode oldObj, ConfigNode newObj) {
+                ConfigNodeEvent event = new ConfigNodeEvent(Action.MODIFIED, newObj, oldObj);
+                receiveConfigNodeEvent(event);
+              }
 
-          @Override
-          public void onUpdate(ConfigNode oldObj, ConfigNode newObj) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.MODIFIED, newObj, oldObj);
-            receiveConfigNodeEvent(event);
-          }
-
-          @Override
-          public void onDelete(ConfigNode obj, boolean deletedFinalStateUnknown) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.DELETED, obj);
-            receiveConfigNodeEvent(event);
-          }
-        });
+              @Override
+              public void onDelete(ConfigNode obj, boolean deletedFinalStateUnknown) {
+                ConfigNodeEvent event = new ConfigNodeEvent(Action.DELETED, obj);
+                receiveConfigNodeEvent(event);
+              }
+            });
   }
 }
