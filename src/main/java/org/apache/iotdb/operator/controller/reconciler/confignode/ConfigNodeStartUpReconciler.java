@@ -162,12 +162,15 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             + "."
             + namespace
             + ".svc.cluster.local:"
-            + configNodeConfig.getRpcPort();
+            + configNodeConfig.getInternalPort();
 
     defaultConfigMap.put(CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE, targetConfigNode);
-    defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_ADDRESS, configNodeConfig.getRpcAddress());
-
-    defaultConfigMap.put(CommonConstant.CONFIG_NODE_RPC_PORT, configNodeConfig.getRpcPort());
+    defaultConfigMap.put(
+        CommonConstant.CONFIG_NODE_INTERNAL_ADDRESS, configNodeConfig.getInternalAddress());
+    defaultConfigMap.put(
+        CommonConstant.CONFIG_NODE_CONSENSUS_PORT, configNodeConfig.getConsensusPort());
+    defaultConfigMap.put(
+        CommonConstant.CONFIG_NODE_INTERNAL_PORT, configNodeConfig.getInternalPort());
 
     return defaultConfigMap;
   }
@@ -362,7 +365,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     ContainerPort rpcPort =
         new ContainerPortBuilder()
             .withName("rpc")
-            .withContainerPort(configNodeConfig.getRpcPort())
+            .withContainerPort(configNodeConfig.getInternalPort())
             .build();
 
     ContainerPort metricPort =
@@ -377,7 +380,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   private Probe createStartupProbe() {
     return new ProbeBuilder()
         .withNewTcpSocket()
-        .withPort(new IntOrString(configNodeConfig.getRpcPort()))
+        .withPort(new IntOrString(configNodeConfig.getInternalPort()))
         .endTcpSocket()
         .withPeriodSeconds(3)
         .withFailureThreshold(60)
@@ -387,7 +390,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   private Probe createReadinessProbe() {
     return new ProbeBuilder()
         .withNewTcpSocket()
-        .withPort(new IntOrString(configNodeConfig.getRpcPort()))
+        .withPort(new IntOrString(configNodeConfig.getInternalPort()))
         .endTcpSocket()
         .withPeriodSeconds(3)
         .withFailureThreshold(3)
@@ -397,7 +400,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   private Probe createLivenessProbe() {
     return new ProbeBuilder()
         .withNewTcpSocket()
-        .withPort(new IntOrString(configNodeConfig.getRpcPort()))
+        .withPort(new IntOrString(configNodeConfig.getInternalPort()))
         .endTcpSocket()
         .withPeriodSeconds(3)
         .withFailureThreshold(10)
@@ -458,7 +461,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withName("consensus")
             .build();
 
-    int rpcPort = configNodeConfig.getRpcPort();
+    int rpcPort = configNodeConfig.getInternalPort();
     ServicePort rpcServicePort =
         new ServicePortBuilder()
             .withNewTargetPort(rpcPort)

@@ -21,17 +21,13 @@
 
 if [ -z "${OPERATOR_HOME}" ]; then
   export OPERATOR_HOME="$(cd "`dirname "$0"`"/..; pwd)"
-  echo "$OPERATOR_HOME"
 fi
 
 MAIN_CLASS=org.apache.iotdb.operator.Main
 
 LIB_PATH=${OPERATOR_HOME}/lib
 
-CLASSPATH=""
-for f in ${LIB_PATH}/*.jar; do
-  CLASSPATH=${CLASSPATH}":"$f
-done
+CLASSPATH="${CLASSPATH}:${LIB_PATH}/*"
 
 
 if [ -n "$JAVA_HOME" ]; then
@@ -46,8 +42,10 @@ else
 fi
 
 ## read memory(mb) from env
+Xmx=2048
 if [ -n "$memory" ]; then
-  xmx=$(($memory*3/4))
-  JAVA="$JAVA -Xmx${xmx}m"
+  Xmx=$(($memory*3/4))
 fi
-exec "$JAVA" -cp "$CLASSPATH" "$MAIN_CLASS"
+
+exec "$JAVA" -Xmx"$Xmx"m -cp "$CLASSPATH" "$MAIN_CLASS"
+

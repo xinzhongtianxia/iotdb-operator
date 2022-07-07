@@ -31,6 +31,7 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetStatus;
 import io.fabric8.kubernetes.client.Watcher.Action;
+import io.fabric8.kubernetes.client.dsl.Deletable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +99,8 @@ public class ConfigNodeStatefulSetReconciler implements IReconciler {
           .persistentVolumeClaims()
           .inNamespace(metadata.getNamespace())
           .withLabels(metadata.getLabels())
-          .delete();
+          .resources()
+          .forEach(Deletable::delete);
       LOGGER.info("pvc deleted : labels = {}", metadata.getLabels());
     } else {
       // do nothing

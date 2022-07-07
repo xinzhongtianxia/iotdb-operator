@@ -24,7 +24,6 @@ import org.apache.iotdb.operator.controller.IController;
 import org.apache.iotdb.operator.controller.KubernetesEventController;
 import org.apache.iotdb.operator.controller.StatefulSetController;
 
-import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,19 +36,14 @@ public class Watcher {
 
   private final List<IController> controllers =
       Arrays.asList(
-          new KubernetesEventController(), new StatefulSetController(), new ConfigNodeController());
+          new KubernetesEventController(), new StatefulSetController(), new ConfigNodeController()
+          //          ,new DataNodeController()
+          );
 
   public void start() {
-    SharedInformerFactory factory = KubernetesClientManager.getInstance().getClient().informers();
-
     for (IController controller : controllers) {
       controller.startDispatch();
-      controller.startWatch(factory);
+      controller.startWatch();
     }
-
-    factory.addSharedInformerEventListener(
-        exception -> LOGGER.error("exception occurred : ", exception));
-
-    factory.startAllRegisteredInformers();
   }
 }
