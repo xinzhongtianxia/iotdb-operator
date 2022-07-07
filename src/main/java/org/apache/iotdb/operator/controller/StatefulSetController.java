@@ -30,20 +30,15 @@ import org.apache.iotdb.operator.event.StatefulSetEvent;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
-import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Function;
 
 public class StatefulSetController implements IController {
   private static final Logger LOGGER = LoggerFactory.getLogger(StatefulSetController.class);
@@ -110,30 +105,29 @@ public class StatefulSetController implements IController {
   }
 
   @Override
-  public void startWatch(SharedInformerFactory factory) {
-    SharedIndexInformer<StatefulSet> stsInformer =
-        factory.sharedIndexInformerFor(StatefulSet.class, 0L);
+  public void startWatch() {
+    kubernetesClient
+        .resources(StatefulSet.class)
+        .inNamespace(namespace)
+        .inform(
+            new ResourceEventHandler<StatefulSet>() {
+              @Override
+              public void onAdd(StatefulSet obj) {
+                StatefulSetEvent event = new StatefulSetEvent(Action.ADDED, obj);
+                receiveStatefulSetEvent(event);
+              }
 
-    Map<String, Function<StatefulSet, List<String>>> index = new HashMap<>();
-    stsInformer.addEventHandler(
-        new ResourceEventHandler<StatefulSet>() {
-          @Override
-          public void onAdd(StatefulSet obj) {
-            StatefulSetEvent event = new StatefulSetEvent(Action.ADDED, obj);
-            receiveStatefulSetEvent(event);
-          }
+              @Override
+              public void onUpdate(StatefulSet oldObj, StatefulSet newObj) {
+                StatefulSetEvent event = new StatefulSetEvent(Action.MODIFIED, newObj, oldObj);
+                receiveStatefulSetEvent(event);
+              }
 
-          @Override
-          public void onUpdate(StatefulSet oldObj, StatefulSet newObj) {
-            StatefulSetEvent event = new StatefulSetEvent(Action.MODIFIED, newObj, oldObj);
-            receiveStatefulSetEvent(event);
-          }
-
-          @Override
-          public void onDelete(StatefulSet obj, boolean deletedFinalStateUnknown) {
-            StatefulSetEvent event = new StatefulSetEvent(Action.DELETED, obj);
-            receiveStatefulSetEvent(event);
-          }
-        });
+              @Override
+              public void onDelete(StatefulSet obj, boolean deletedFinalStateUnknown) {
+                StatefulSetEvent event = new StatefulSetEvent(Action.DELETED, obj);
+                receiveStatefulSetEvent(event);
+              }
+            });
   }
 }

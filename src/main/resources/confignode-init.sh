@@ -35,8 +35,8 @@ modify_properties() {
     exit 1
   fi
 
-  echo "set rpc_address to $POD_FQDN"
-  sed -i "s/^rpc_address.*/rpc_address=$POD_FQDN/" $CONFIG_NODE_PROP_FILE
+  echo "set internal_address to $POD_FQDN"
+  sed -i "s/^internal_address.*/internal_address=$POD_FQDN/" $CONFIG_NODE_PROP_FILE
 }
 
 modify_JVM_options() {

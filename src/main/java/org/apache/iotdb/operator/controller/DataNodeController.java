@@ -10,8 +10,6 @@ import org.apache.iotdb.operator.event.DataNodeEvent;
 
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
-import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,30 +74,30 @@ public class DataNodeController implements IController {
   }
 
   @Override
-  public void startWatch(SharedInformerFactory factory) {
-    SharedIndexInformer<DataNode> dataNodeInformer =
-        factory.sharedIndexInformerFor(DataNode.class, 0L);
+  public void startWatch() {
+    kubernetesClient
+        .resources(DataNode.class)
+        .inNamespace(namespace)
+        .inform(
+            new ResourceEventHandler<DataNode>() {
+              @Override
+              public void onAdd(DataNode obj) {
+                // TODO handle synthetic add
+                DataNodeEvent event = new DataNodeEvent(Action.ADDED, obj);
+                receiveDataNodeEvent(event);
+              }
 
-    dataNodeInformer.addEventHandler(
-        new ResourceEventHandler<DataNode>() {
-          @Override
-          public void onAdd(DataNode obj) {
-            // TODO handle synthetic add
-            DataNodeEvent event = new DataNodeEvent(Action.ADDED, obj);
-            receiveDataNodeEvent(event);
-          }
+              @Override
+              public void onUpdate(DataNode oldObj, DataNode newObj) {
+                DataNodeEvent event = new DataNodeEvent(Action.MODIFIED, newObj, oldObj);
+                receiveDataNodeEvent(event);
+              }
 
-          @Override
-          public void onUpdate(DataNode oldObj, DataNode newObj) {
-            DataNodeEvent event = new DataNodeEvent(Action.MODIFIED, newObj, oldObj);
-            receiveDataNodeEvent(event);
-          }
-
-          @Override
-          public void onDelete(DataNode obj, boolean deletedFinalStateUnknown) {
-            DataNodeEvent event = new DataNodeEvent(Action.DELETED, obj);
-            receiveDataNodeEvent(event);
-          }
-        });
+              @Override
+              public void onDelete(DataNode obj, boolean deletedFinalStateUnknown) {
+                DataNodeEvent event = new DataNodeEvent(Action.DELETED, obj);
+                receiveDataNodeEvent(event);
+              }
+            });
   }
 }
