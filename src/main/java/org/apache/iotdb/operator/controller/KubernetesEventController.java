@@ -24,8 +24,6 @@ import org.apache.iotdb.operator.event.KubernetesEventEvent;
 import io.fabric8.kubernetes.api.model.Event;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
-import io.fabric8.kubernetes.client.informers.SharedIndexInformer;
-import io.fabric8.kubernetes.client.informers.SharedInformerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,24 +40,26 @@ public class KubernetesEventController implements IController {
   }
 
   @Override
-  public void startWatch(SharedInformerFactory factory) {
-    SharedIndexInformer<Event> eventInformer = factory.sharedIndexInformerFor(Event.class, 0L);
-    eventInformer.addEventHandler(
-        new ResourceEventHandler<Event>() {
-          @Override
-          public void onAdd(Event obj) {
-            LOGGER.info("{}", new KubernetesEventEvent(Action.ADDED, obj));
-          }
+  public void startWatch() {
+    kubernetesClient
+        .resources(Event.class)
+        .inNamespace(namespace)
+        .inform(
+            new ResourceEventHandler<Event>() {
+              @Override
+              public void onAdd(Event obj) {
+                LOGGER.info("{}", new KubernetesEventEvent(Action.ADDED, obj));
+              }
 
-          @Override
-          public void onUpdate(Event oldObj, Event newObj) {
-            LOGGER.info("{}", new KubernetesEventEvent(Action.MODIFIED, newObj));
-          }
+              @Override
+              public void onUpdate(Event oldObj, Event newObj) {
+                LOGGER.info("{}", new KubernetesEventEvent(Action.MODIFIED, newObj));
+              }
 
-          @Override
-          public void onDelete(Event obj, boolean deletedFinalStateUnknown) {
-            LOGGER.info("{}", new KubernetesEventEvent(Action.DELETED, obj));
-          }
-        });
+              @Override
+              public void onDelete(Event obj, boolean deletedFinalStateUnknown) {
+                LOGGER.info("{}", new KubernetesEventEvent(Action.DELETED, obj));
+              }
+            });
   }
 }

@@ -29,14 +29,14 @@ import java.util.List;
  *
  * <ol>
  *   <li>Firstly, these configs are set in the helm .Values file.
- *   <li>Secondly, configs in .Values file will be translate to a ConfigMap.
- *   <li>Thirdly, the parameters in ConfigMap will be passed to the container as ENVs.
+ *   <li>Secondly, configs in .Values file will be passed to the container as ENVs.
  * </ol>
  *
  * <p>So, we just need to read these configs from ENV.
  */
 public class IoTDBOperatorConfig {
 
+  private String name = "iotdb";
   private String version = "v1";
   private String namespace = "iotdb";
   private final List<String> supportedVersions = Arrays.asList("v1");
@@ -54,7 +54,15 @@ public class IoTDBOperatorConfig {
   }
 
   public void setNamespace(String namespace) {
-    this.namespace = namespace;
+    if (namespace != null && !namespace.isEmpty()) {
+      this.namespace = namespace;
+    }
+  }
+
+  public void setName(String name) {
+    if (name != null && !name.isEmpty()) {
+      this.name = name;
+    }
   }
 
   private IoTDBOperatorConfig() {
@@ -63,7 +71,11 @@ public class IoTDBOperatorConfig {
 
   private void readConfigFromEnv() {
     setNamespace(System.getenv("namespace"));
-    setVersion(System.getenv("version"));
+    setName(System.getenv("name"));
+  }
+
+  public String getName() {
+    return name;
   }
 
   public List<String> getSupportedVersions() {

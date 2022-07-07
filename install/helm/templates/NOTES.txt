@@ -17,37 +17,12 @@
 # under the License.
 #
 
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: iotdb-operator
-  namespace: iotdb
-  labels:
-    app: iotdb
-rules:
-  - apiGroups:
-      - "iotdb.apache.org"
-    resources:
-      - confignodes
-      - datanodes
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - patch
-      - update
-      - delete
-  - apiGroups:
-      - "apps"
-    resources:
-      - statefulsets
-      - statefulsets/status
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - patch
-      - update
-      - delete
+Thank you for installing {{ .Chart.Name }}.
+
+The deployed {{ .Chart.Name }} is named to {{ .Release.Name }}.
+
+You can use flowing command to get {{ .Release.Name }} related resources:
+
+`kubectl -n {{ .Values.namespace }} get deployment {{ .Release.Name }}`
+
+`kubectl -n {{ .Values.namespace }} get service {{ .Release.Name }}`

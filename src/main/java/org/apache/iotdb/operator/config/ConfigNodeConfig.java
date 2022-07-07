@@ -28,10 +28,10 @@ import java.util.List;
 /** Configurations for IoTDB ConfigNode. */
 public class ConfigNodeConfig extends CommonConfig {
 
-  /** will be replaced to pod's FQDN at the starting of container. */
-  private String rpcAddress = "0.0.0.0";
+  /** will be replaced by pod's FQDN at the starting of the container. */
+  private String internalAddress = "0.0.0.0";
 
-  private int rpcPort = 22277;
+  private int internalPort = 22277;
   private int consensusPort = 22278;
   private int metricPort = 9091;
   private String dataDir = "/iotdb/confignode/data";
@@ -40,8 +40,9 @@ public class ConfigNodeConfig extends CommonConfig {
   private List<String> defaultProperties =
       Arrays.asList(
           CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE,
-          CommonConstant.CONFIG_NODE_RPC_ADDRESS,
-          CommonConstant.CONFIG_NODE_RPC_PORT);
+          CommonConstant.CONFIG_NODE_INTERNAL_ADDRESS,
+          CommonConstant.CONFIG_NODE_INTERNAL_PORT,
+          CommonConstant.CONFIG_NODE_CONSENSUS_PORT);
 
   /** Commands to start confignode */
   private String startArgs =
@@ -49,12 +50,12 @@ public class ConfigNodeConfig extends CommonConfig {
           + "&& cd /iotdb/confignode/conf "
           + "&& sh confignode-init.sh";
 
-  public void setRpcAddress(String rpcAddress) {
-    this.rpcAddress = rpcAddress;
+  public void setInternalAddress(String internalAddress) {
+    this.internalAddress = internalAddress;
   }
 
-  public void setRpcPort(int rpcPort) {
-    this.rpcPort = rpcPort;
+  public void setInternalPort(int internalPort) {
+    this.internalPort = internalPort;
   }
 
   public void setConsensusPort(int consensusPort) {
@@ -89,8 +90,8 @@ public class ConfigNodeConfig extends CommonConfig {
     return logDir;
   }
 
-  public int getRpcPort() {
-    return rpcPort;
+  public int getInternalPort() {
+    return internalPort;
   }
 
   public int getConsensusPort() {
@@ -109,8 +110,8 @@ public class ConfigNodeConfig extends CommonConfig {
     return startArgs;
   }
 
-  public String getRpcAddress() {
-    return rpcAddress;
+  public String getInternalAddress() {
+    return internalAddress;
   }
 
   private static class ConfigDescriptor {

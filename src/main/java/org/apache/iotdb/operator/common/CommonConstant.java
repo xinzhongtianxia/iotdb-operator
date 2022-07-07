@@ -51,7 +51,8 @@ public class CommonConstant {
 
   public static final String CONFIG_NODE_PROPERTY_FILE_NAME = "iotdb-confignode.properties";
   public static final String CONFIG_NODE_INIT_SCRIPT_FILE_NAME = "confignode-init.sh";
-  public static final String CONFIG_NODE_RPC_ADDRESS = "rpc_address";
-  public static final String CONFIG_NODE_RPC_PORT = "rpc_port";
-  public static final String CONFIG_NODE_TARGET_CONFIG_NODE = "target_confignode";
+  public static final String CONFIG_NODE_INTERNAL_ADDRESS = "internal_address";
+  public static final String CONFIG_NODE_INTERNAL_PORT = "internal_port";
+  public static final String CONFIG_NODE_CONSENSUS_PORT = "consensus_port";
+  public static final String CONFIG_NODE_TARGET_CONFIG_NODE = "target_config_nodes";
 }

@@ -19,7 +19,6 @@
 
 package org.apache.iotdb.operator;
 
-import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.exception.ResourceAlreadyExistException;
 
@@ -47,16 +46,17 @@ public class Main {
 
   private void checkIfAlreadyExist() throws ResourceAlreadyExistException {
     String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+    String name = IoTDBOperatorConfig.getInstance().getName();
     KubernetesClient client = KubernetesClientManager.getInstance().getClient();
-    long currentRunningOperatorCount =
+    long count =
         client
             .apps()
             .deployments()
             .inNamespace(namespace)
-            .withLabel(CommonConstant.LABEL_KEY_MANAGED_BY, "iotdb")
             .resources()
+            .filter(d -> !d.get().getMetadata().getName().equals(name))
             .count();
-    if (currentRunningOperatorCount > 0) {
+    if (count > 0) {
       throw new ResourceAlreadyExistException(
           "there is already running IoTDB-Operator in this namespace");
     }
