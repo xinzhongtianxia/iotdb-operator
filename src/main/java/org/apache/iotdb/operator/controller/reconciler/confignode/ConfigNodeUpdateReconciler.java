@@ -21,7 +21,6 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
-import org.apache.iotdb.operator.controller.reconciler.ReconcileUtils;
 import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
@@ -29,9 +28,11 @@ import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.crd.Limits;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
-import org.apache.iotdb.operator.util.DigestUtil;
+import org.apache.iotdb.operator.util.DigestUtils;
+import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
@@ -45,6 +46,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -90,16 +92,23 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
     int replicas = newSpec.getReplicas();
     String image = newSpec.getImage();
     String imageSecret = newSpec.getImagePullSecret();
+
+    // update replicas
     statefulSet.getSpec().setReplicas(replicas);
+
+    // update image
     statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setImage(image);
+
+    // update image pull secrets
     statefulSet
         .getSpec()
         .getTemplate()
         .getSpec()
         .setImagePullSecrets(Collections.singletonList(new LocalObjectReference(imageSecret)));
 
+    // update limits
     Limits limits = newSpec.getLimits();
-    ResourceRequirements resourceRequirements = ReconcileUtils.createResourceLimits(limits);
+    ResourceRequirements resourceRequirements = ReconcilerUtils.createResourceLimits(limits);
     statefulSet
         .getSpec()
         .getTemplate()
@@ -109,8 +118,12 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
         .get(0)
         .setResources(resourceRequirements);
 
+    // update env
+    List<EnvVar> envs = ReconcilerUtils.computeJVMMemory(limits);
+    statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(envs);
+
     // update configMapSha256
-    String cmSha = DigestUtil.sha(configMap.getData().toString());
+    String cmSha = DigestUtils.sha(configMap.getData().toString());
     statefulSet
         .getSpec()
         .getTemplate()
@@ -198,7 +211,7 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
           newSpec.getReplicas());
     }
 
-    String newCmSha = DigestUtil.sha(configMap.getData().toString());
+    String newCmSha = DigestUtils.sha(configMap.getData().toString());
     String oldCmSha =
         statefulSet
             .getSpec()
