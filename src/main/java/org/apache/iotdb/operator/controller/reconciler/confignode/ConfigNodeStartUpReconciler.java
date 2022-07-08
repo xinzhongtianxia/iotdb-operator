@@ -21,12 +21,12 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
-import org.apache.iotdb.operator.controller.reconciler.ReconcileUtils;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
-import org.apache.iotdb.operator.util.DigestUtil;
+import org.apache.iotdb.operator.util.DigestUtils;
+import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import org.apache.commons.io.IOUtils;
 import io.fabric8.kubernetes.api.model.Affinity;
@@ -181,11 +181,12 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     // metadata
     ObjectMeta metadata = createMetadata();
 
+    // specific
     StatefulSetSpec statefulSetSpec = createStatefulsetSpec();
 
     // Here we attach an annotation to statefulset's podTemplate to let it triggers a rolling update
     // for the pods when there is only data changed in ConfigMap.
-    String cmSha = DigestUtil.sha(configMap.toString());
+    String cmSha = DigestUtils.sha(configMap.toString());
     statefulSetSpec
         .getTemplate()
         .getMetadata()
@@ -205,10 +206,13 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
 
   private StatefulSetSpec createStatefulsetSpec() {
 
+    // pod
     PodTemplateSpec podTemplate = createPodTemplate();
 
+    // pvc
     PersistentVolumeClaim persistentVolumeClaim = createPersistentVolumeClaimTemplate();
 
+    // label
     LabelSelector selector = new LabelSelectorBuilder().withMatchLabels(getLabels()).build();
 
     StatefulSetSpec statefulSetSpec =
@@ -258,15 +262,18 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     // container
     Container container = createConfigNodeContainer();
 
+    // volume
     Volume volume =
         new VolumeBuilder()
             .withName(subResourceName + CommonConstant.VOLUME_SUFFIX_CONFIG)
             .withConfigMap(new ConfigMapVolumeSourceBuilder().withName(subResourceName).build())
             .build();
 
+    // dns config
     PodDNSConfig dnsConfig =
         new PodDNSConfigBuilder().withOptions(new PodDNSConfigOption("ndots", "3")).build();
 
+    // pod
     PodSpec podSpec =
         new PodSpecBuilder()
             .withAffinity(affinity)
@@ -276,6 +283,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             .withDnsConfig(dnsConfig)
             .build();
 
+    // image pull secret
     String imagePullSecret = commonSpec.getImagePullSecret();
     if (imagePullSecret != null && !imagePullSecret.isEmpty()) {
       podSpec.setImagePullSecrets(
@@ -301,13 +309,13 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
     Probe livenessProbe = createLivenessProbe();
 
     ResourceRequirements resourceRequirements =
-        ReconcileUtils.createResourceLimits(commonSpec.getLimits());
+        ReconcilerUtils.createResourceLimits(commonSpec.getLimits());
 
     List<ContainerPort> containerPorts = createConfigNodeContainerPort();
 
     List<VolumeMount> volumeMounts = createVolumeMounts(subResourceName);
 
-    List<EnvVar> envs = computeJVMMemory();
+    List<EnvVar> envs = ReconcilerUtils.computeJVMMemory(commonSpec.getLimits());
 
     Container container =
         new ContainerBuilder()
