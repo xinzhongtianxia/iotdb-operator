@@ -26,8 +26,8 @@ import org.apache.commons.codec.binary.Hex;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class DigestUtil {
-  private static final Logger LOGGER = LoggerFactory.getLogger(DigestUtil.class);
+public class DigestUtils {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DigestUtils.class);
 
   public static String sha(String str) {
     if (str == null) {

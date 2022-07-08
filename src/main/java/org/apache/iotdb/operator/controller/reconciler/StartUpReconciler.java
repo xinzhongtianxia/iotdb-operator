@@ -19,23 +19,17 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.common.EnvKey;
 import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.crd.Limits;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 public abstract class StartUpReconciler implements IReconciler {
@@ -65,31 +59,6 @@ public abstract class StartUpReconciler implements IReconciler {
 
     LOGGER.info("{} : createStatefulSet", eventId);
     createStatefulSet(configMap);
-  }
-
-  /**
-   * To compute best-practice JVM memory options. Generally, it should be a relatively high
-   * percentage of the container total memory, which makes no waste of system resources.
-   */
-  protected List<EnvVar> computeJVMMemory() {
-    Limits resourceLimits = commonSpec.getLimits();
-    int memory = resourceLimits.getMemory();
-    int maxHeapMemorySize = memory * 60 / 100;
-    int maxDirectMemorySize = maxHeapMemorySize * 20 / 100;
-
-    EnvVar heapMemoryEnv =
-        new EnvVarBuilder()
-            .withName(EnvKey.IOTDB_MAX_HEAP_MEMORY_SIZE.name())
-            .withValue(maxHeapMemorySize + "M")
-            .build();
-
-    EnvVar directMemoryEnv =
-        new EnvVarBuilder()
-            .withName(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name())
-            .withValue(maxDirectMemorySize + "M")
-            .build();
-
-    return Arrays.asList(heapMemoryEnv, directMemoryEnv);
   }
 
   /** Create files that need to be mounted to container via ConfigMap. */

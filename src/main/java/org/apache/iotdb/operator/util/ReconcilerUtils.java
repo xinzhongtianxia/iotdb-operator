@@ -17,19 +17,24 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.util;
 
 import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.common.EnvKey;
 import org.apache.iotdb.operator.crd.Limits;
 
+import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.EnvVarBuilder;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class ReconcileUtils {
+public class ReconcilerUtils {
   public static ResourceRequirements createResourceLimits(Limits limits) {
     Map<String, Quantity> resourceLimits = new HashMap<>(2);
     int cpu = limits.getCpu();
@@ -39,5 +44,29 @@ public class ReconcileUtils {
         CommonConstant.RESOURCE_MEMORY,
         new Quantity(memoryMb + CommonConstant.RESOURCE_STORAGE_UNIT_M));
     return new ResourceRequirementsBuilder().withLimits(resourceLimits).build();
+  }
+
+  /**
+   * To compute best-practice JVM memory options. Generally, it should be a relatively high
+   * percentage of the container total memory, which makes no waste of system resources.
+   */
+  public static List<EnvVar> computeJVMMemory(Limits limits) {
+    int memory = limits.getMemory();
+    int maxHeapMemorySize = memory * 60 / 100;
+    int maxDirectMemorySize = maxHeapMemorySize * 20 / 100;
+
+    EnvVar heapMemoryEnv =
+        new EnvVarBuilder()
+            .withName(EnvKey.IOTDB_MAX_HEAP_MEMORY_SIZE.name())
+            .withValue(maxHeapMemorySize + "M")
+            .build();
+
+    EnvVar directMemoryEnv =
+        new EnvVarBuilder()
+            .withName(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name())
+            .withValue(maxDirectMemorySize + "M")
+            .build();
+
+    return Arrays.asList(heapMemoryEnv, directMemoryEnv);
   }
 }
