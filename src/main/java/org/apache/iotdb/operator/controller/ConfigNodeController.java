@@ -19,6 +19,8 @@
 
 package org.apache.iotdb.operator.controller;
 
+import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.controller.reconciler.DefaultReconciler;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeDeleteReconciler;
@@ -28,7 +30,10 @@ import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
 
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.Watcher.Action;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,34 +112,37 @@ public class ConfigNodeController implements IController {
 
   @Override
   public void startWatch() {
-    kubernetesClient
-        .resources(ConfigNode.class)
-        .inNamespace(namespace)
-        .inform(
-            new ResourceEventHandler<ConfigNode>() {
-              @Override
-              public void onAdd(ConfigNode obj) {
-                ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, obj);
-                if (event.isSyntheticAdded()) {
-                  LOGGER.warn(
-                      "received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
-                  // we should treat synthetic added events as modified events.
-                  event = new ConfigNodeEvent(Action.MODIFIED, obj);
-                }
-                receiveConfigNodeEvent(event);
-              }
+    MixedOperation<ConfigNode, KubernetesResourceList<ConfigNode>, Resource<ConfigNode>> resources =
+        kubernetesClient.resources(ConfigNode.class);
+    String scope = IoTDBOperatorConfig.getInstance().getScope();
+    if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
+      String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+      resources.inNamespace(namespace);
+    }
+    resources.inform(
+        new ResourceEventHandler<ConfigNode>() {
+          @Override
+          public void onAdd(ConfigNode obj) {
+            ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, obj);
+            if (event.isSyntheticAdded()) {
+              LOGGER.warn("received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
+              // we should treat synthetic added events as modified events.
+              event = new ConfigNodeEvent(Action.MODIFIED, obj);
+            }
+            receiveConfigNodeEvent(event);
+          }
 
-              @Override
-              public void onUpdate(ConfigNode oldObj, ConfigNode newObj) {
-                ConfigNodeEvent event = new ConfigNodeEvent(Action.MODIFIED, newObj, oldObj);
-                receiveConfigNodeEvent(event);
-              }
+          @Override
+          public void onUpdate(ConfigNode oldObj, ConfigNode newObj) {
+            ConfigNodeEvent event = new ConfigNodeEvent(Action.MODIFIED, newObj, oldObj);
+            receiveConfigNodeEvent(event);
+          }
 
-              @Override
-              public void onDelete(ConfigNode obj, boolean deletedFinalStateUnknown) {
-                ConfigNodeEvent event = new ConfigNodeEvent(Action.DELETED, obj);
-                receiveConfigNodeEvent(event);
-              }
-            });
+          @Override
+          public void onDelete(ConfigNode obj, boolean deletedFinalStateUnknown) {
+            ConfigNodeEvent event = new ConfigNodeEvent(Action.DELETED, obj);
+            receiveConfigNodeEvent(event);
+          }
+        });
   }
 }

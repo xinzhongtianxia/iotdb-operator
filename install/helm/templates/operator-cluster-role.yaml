@@ -16,21 +16,58 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-{{- if eq .Values.scope namespace }}
+
+{{- if eq .Values.scope cluster }}
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRole
 metadata:
   name: {{ .Release.Name }}
-  {{- if .Values.namespace }}
-  namespace: {{ .Values.namespace }}
-  {{- end }}
   labels:
     app-managed-by: iotdb
-subjects:
-  - kind: ServiceAccount
-    name: {{ .Release.Name }}
-roleRef:
-  kind: Role
-  name: {{ .Release.Name }}
-  apiGroup: rbac.authorization.k8s.io
+rules:
+  - apiGroups:
+      - "iotdb.apache.org"
+    resources:
+      - confignodes
+      - datanodes
+      - confignodes/status
+      - datanodes/status
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - "apps"
+    resources:
+      - statefulsets
+      - statefulsets/status
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - configmaps
+      - events
+      - persistentvolumeclaims
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - patch
+      - update
+      - delete
 {{- end }}
