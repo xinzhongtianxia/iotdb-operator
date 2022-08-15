@@ -20,13 +20,11 @@
 package org.apache.iotdb.operator.controller;
 
 import org.apache.iotdb.operator.KubernetesClientManager;
-import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 
 public interface IController {
   KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
-  String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
 
   /** Start the dispatch thread to route events received from watcher to corresponding reconciler */
   void startDispatch();

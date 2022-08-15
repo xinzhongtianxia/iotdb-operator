@@ -31,7 +31,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv139031
+    path: /Users/gaoyang/work/k8s/pvs/pv3031
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -52,7 +52,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv139032
+    path: /Users/gaoyang/work/k8s/pvs/pv3032
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -73,7 +73,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv139033
+    path: /Users/gaoyang/work/k8s/pvs/pv3033
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -94,7 +94,7 @@ spec:
   persistentVolumeReclaimPolicy: Delete
   storageClassName: local
   local:
-    path: /Users/gaoyang/work/k8s/pvs/pv139034
+    path: /Users/gaoyang/work/k8s/pvs/pv3034
   nodeAffinity:
     required:
       nodeSelectorTerms:

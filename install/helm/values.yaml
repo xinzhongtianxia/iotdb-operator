@@ -17,8 +17,13 @@
 # under the License.
 #
 
+# The action scope of IoTDB Operator
+# cluster: IoTDB Operator will watch and reconcile all iotdb resources in the whole Kubernetes cluster.
+# namespace: IoTDB Operator will watch and reconcile iotdb resources in the specific namespace where Operator itself running in.
+scope: "cluster"
+
 # The Kubernetes namespace in which the IoTDB Operator will be installed.
-# We strongly recommend that you should always set the namespace, if not, the default namespace will be used.
+# We strongly recommend that you should always set the namespace param, if not, the default namespace will be used.
 namespace: "iotdb"
 
 # The iotdb-operator image and its version

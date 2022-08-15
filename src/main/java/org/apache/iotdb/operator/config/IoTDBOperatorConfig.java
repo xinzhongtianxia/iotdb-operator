@@ -20,7 +20,9 @@
 package org.apache.iotdb.operator.config;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Configurations for IoTDB Operator.
@@ -36,10 +38,13 @@ import java.util.List;
  */
 public class IoTDBOperatorConfig {
 
-  private String name = "iotdb";
+  private String name;
   private String version = "v1";
-  private String namespace = "iotdb";
+  private String namespace;
+  private String scope = "cluster";
   private final List<String> supportedVersions = Arrays.asList("v1");
+
+  private final Map<String, String> operatorDeploymentLabels;
 
   public String getVersion() {
     return version;
@@ -47,6 +52,14 @@ public class IoTDBOperatorConfig {
 
   public String getNamespace() {
     return namespace;
+  }
+
+  public String getScope() {
+    return scope;
+  }
+
+  public void setScope(String scope) {
+    this.scope = scope;
   }
 
   public void setVersion(String version) {
@@ -66,16 +79,24 @@ public class IoTDBOperatorConfig {
   }
 
   private IoTDBOperatorConfig() {
+    operatorDeploymentLabels = new HashMap<>();
+    operatorDeploymentLabels.put("app-managed-by", "iotdb");
+    operatorDeploymentLabels.put("app", "iotdb-operator");
     readConfigFromEnv();
   }
 
   private void readConfigFromEnv() {
     setNamespace(System.getenv("namespace"));
     setName(System.getenv("name"));
+    setScope(System.getenv("scope"));
   }
 
   public String getName() {
     return name;
+  }
+
+  public Map<String, String> getOperatorDeploymentLabels() {
+    return operatorDeploymentLabels;
   }
 
   public List<String> getSupportedVersions() {

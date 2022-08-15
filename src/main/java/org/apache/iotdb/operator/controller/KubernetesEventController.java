@@ -19,10 +19,15 @@
 
 package org.apache.iotdb.operator.controller;
 
+import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.event.KubernetesEventEvent;
 
 import io.fabric8.kubernetes.api.model.Event;
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.Watcher.Action;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,25 +46,29 @@ public class KubernetesEventController implements IController {
 
   @Override
   public void startWatch() {
-    kubernetesClient
-        .resources(Event.class)
-        .inNamespace(namespace)
-        .inform(
-            new ResourceEventHandler<Event>() {
-              @Override
-              public void onAdd(Event obj) {
-                LOGGER.info("{}", new KubernetesEventEvent(Action.ADDED, obj));
-              }
+    MixedOperation<Event, KubernetesResourceList<Event>, Resource<Event>> resources =
+        kubernetesClient.resources(Event.class);
+    String scope = IoTDBOperatorConfig.getInstance().getScope();
+    if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
+      String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+      resources.inNamespace(namespace);
+    }
+    resources.inform(
+        new ResourceEventHandler<Event>() {
+          @Override
+          public void onAdd(Event obj) {
+            LOGGER.info("{}", new KubernetesEventEvent(Action.ADDED, obj));
+          }
 
-              @Override
-              public void onUpdate(Event oldObj, Event newObj) {
-                LOGGER.info("{}", new KubernetesEventEvent(Action.MODIFIED, newObj));
-              }
+          @Override
+          public void onUpdate(Event oldObj, Event newObj) {
+            LOGGER.info("{}", new KubernetesEventEvent(Action.MODIFIED, newObj));
+          }
 
-              @Override
-              public void onDelete(Event obj, boolean deletedFinalStateUnknown) {
-                LOGGER.info("{}", new KubernetesEventEvent(Action.DELETED, obj));
-              }
-            });
+          @Override
+          public void onDelete(Event obj, boolean deletedFinalStateUnknown) {
+            LOGGER.info("{}", new KubernetesEventEvent(Action.DELETED, obj));
+          }
+        });
   }
 }
