@@ -19,12 +19,15 @@
 
 package org.apache.iotdb.operator;
 
+import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.exception.ResourceAlreadyExistException;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class Main {
 
@@ -39,23 +42,39 @@ public class Main {
     }
   }
 
-  private void run() throws ResourceAlreadyExistException {
-    checkIfAlreadyExist();
+  private void run() throws ResourceAlreadyExistException, IOException {
+    String scope = IoTDBOperatorConfig.getInstance().getScope();
+    checkIfAlreadyExist(scope);
     startWatcher();
+    LOGGER.info("IoTDB Operator stated in {} scope", scope);
   }
 
-  private void checkIfAlreadyExist() throws ResourceAlreadyExistException {
-    String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+  private void checkIfAlreadyExist(String scope) throws ResourceAlreadyExistException {
     String name = IoTDBOperatorConfig.getInstance().getName();
     KubernetesClient client = KubernetesClientManager.getInstance().getClient();
-    long count =
-        client
-            .apps()
-            .deployments()
-            .inNamespace(namespace)
-            .resources()
-            .filter(d -> !d.get().getMetadata().getName().equals(name))
-            .count();
+    long count;
+    if (scope.equals(CommonConstant.SCOPE_CLUSTER)) {
+      count =
+          client
+              .apps()
+              .deployments()
+              .withLabels(IoTDBOperatorConfig.getInstance().getOperatorDeploymentLabels())
+              .resources()
+              .filter(d -> !d.get().getMetadata().getName().equals(name))
+              .count();
+    } else {
+      String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+      count =
+          client
+              .apps()
+              .deployments()
+              .inNamespace(namespace)
+              .withLabels(IoTDBOperatorConfig.getInstance().getOperatorDeploymentLabels())
+              .resources()
+              .filter(d -> !d.get().getMetadata().getName().equals(name))
+              .count();
+    }
+
     if (count > 0) {
       throw new ResourceAlreadyExistException(
           "there is already running IoTDB-Operator in this namespace");

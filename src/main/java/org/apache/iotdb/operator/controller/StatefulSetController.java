@@ -20,6 +20,7 @@
 package org.apache.iotdb.operator.controller;
 
 import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.controller.reconciler.DefaultReconciler;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeStatefulSetReconciler;
@@ -27,8 +28,11 @@ import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeStateful
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.StatefulSetEvent;
 
+import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.Watcher.Action;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,28 +110,32 @@ public class StatefulSetController implements IController {
 
   @Override
   public void startWatch() {
-    kubernetesClient
-        .resources(StatefulSet.class)
-        .inNamespace(namespace)
-        .inform(
-            new ResourceEventHandler<StatefulSet>() {
-              @Override
-              public void onAdd(StatefulSet obj) {
-                StatefulSetEvent event = new StatefulSetEvent(Action.ADDED, obj);
-                receiveStatefulSetEvent(event);
-              }
+    MixedOperation<StatefulSet, KubernetesResourceList<StatefulSet>, Resource<StatefulSet>>
+        resources = kubernetesClient.resources(StatefulSet.class);
+    String scope = IoTDBOperatorConfig.getInstance().getScope();
+    if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
+      String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
+      resources.inNamespace(namespace);
+    }
+    resources.inform(
+        new ResourceEventHandler<StatefulSet>() {
+          @Override
+          public void onAdd(StatefulSet obj) {
+            StatefulSetEvent event = new StatefulSetEvent(Action.ADDED, obj);
+            receiveStatefulSetEvent(event);
+          }
 
-              @Override
-              public void onUpdate(StatefulSet oldObj, StatefulSet newObj) {
-                StatefulSetEvent event = new StatefulSetEvent(Action.MODIFIED, newObj, oldObj);
-                receiveStatefulSetEvent(event);
-              }
+          @Override
+          public void onUpdate(StatefulSet oldObj, StatefulSet newObj) {
+            StatefulSetEvent event = new StatefulSetEvent(Action.MODIFIED, newObj, oldObj);
+            receiveStatefulSetEvent(event);
+          }
 
-              @Override
-              public void onDelete(StatefulSet obj, boolean deletedFinalStateUnknown) {
-                StatefulSetEvent event = new StatefulSetEvent(Action.DELETED, obj);
-                receiveStatefulSetEvent(event);
-              }
-            });
+          @Override
+          public void onDelete(StatefulSet obj, boolean deletedFinalStateUnknown) {
+            StatefulSetEvent event = new StatefulSetEvent(Action.DELETED, obj);
+            receiveStatefulSetEvent(event);
+          }
+        });
   }
 }

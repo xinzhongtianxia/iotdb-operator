@@ -24,8 +24,8 @@ FROM openjdk:11-jre-slim
 ADD target/apache-iotdb-operator-*.zip /
 
 RUN apt update \
-  && apt install vim dos2unix unzip -y \
-  && unzip /apache-iotdb-operator-*.zip -d /apache-iotdb-operator \
+  && apt install vim dos2unix unzip curl -y
+RUN unzip /apache-iotdb-operator-*.zip -d /apache-iotdb-operator \
   && rm /apache-iotdb-operator-*.zip \
   && ls \
   && mv /apache-iotdb-operator /iotdb-operator \
