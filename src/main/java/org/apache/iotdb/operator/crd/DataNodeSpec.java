@@ -2,16 +2,28 @@ package org.apache.iotdb.operator.crd;
 
 public class DataNodeSpec extends CommonSpec {
 
-  private IoTDBConfigNodeConfig ioTDBConfigNodeConfig;
+  private IoTDBDataNodeConfig iotdbConfig;
 
   private Service service;
 
-  public IoTDBConfigNodeConfig getIoTDBConfigNodeConfig() {
-    return ioTDBConfigNodeConfig;
+  private String mode;
+
+  private String confignodeName;
+
+  public IoTDBDataNodeConfig getIotdbConfig() {
+    return iotdbConfig;
   }
 
-  public void setIoTDBConfigNodeConfig(IoTDBConfigNodeConfig ioTDBConfigNodeConfig) {
-    this.ioTDBConfigNodeConfig = ioTDBConfigNodeConfig;
+  public void setIotdbConfig(IoTDBDataNodeConfig iotdbConfig) {
+    this.iotdbConfig = iotdbConfig;
+  }
+
+  public String getConfignodeName() {
+    return confignodeName;
+  }
+
+  public void setConfignodeName(String confignodeName) {
+    this.confignodeName = confignodeName;
   }
 
   public Service getService() {
@@ -20,5 +32,13 @@ public class DataNodeSpec extends CommonSpec {
 
   public void setService(Service service) {
     this.service = service;
+  }
+
+  public String getMode() {
+    return mode;
+  }
+
+  public void setMode(String mode) {
+    this.mode = mode;
   }
 }
