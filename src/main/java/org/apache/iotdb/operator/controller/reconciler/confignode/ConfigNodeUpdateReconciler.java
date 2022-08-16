@@ -25,28 +25,17 @@ import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.crd.Limits;
 import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.ConfigNodeEvent;
-import org.apache.iotdb.operator.util.DigestUtils;
-import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
-import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
-import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
-import io.fabric8.kubernetes.api.model.apps.StatefulSet;
-import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -56,14 +45,14 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
 
   private ConfigNodeConfig configNodeConfig = ConfigNodeConfig.getInstance();
 
-  private final ConfigNodeSpec newSpec;
-
   private final CommonStatus oldStatus;
   private final CommonStatus newStatus;
 
   public ConfigNodeUpdateReconciler(BaseEvent event) {
-    super(((ConfigNodeEvent) event).getResource().getMetadata(), Kind.CONFIG_NODE);
-    newSpec = ((ConfigNodeEvent) event).getResource().getSpec();
+    super(
+        ((ConfigNodeEvent) event).getResource().getMetadata(),
+        Kind.CONFIG_NODE,
+        ((ConfigNodeEvent) event).getResource().getSpec());
     newStatus = ((ConfigNodeEvent) event).getResource().getStatus();
     if (((ConfigNodeEvent) event).getOldResource() != null) {
       oldStatus = ((ConfigNodeEvent) event).getOldResource().getStatus();
@@ -88,51 +77,6 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected void internalUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
-    int replicas = newSpec.getReplicas();
-    String image = newSpec.getImage();
-    String imageSecret = newSpec.getImagePullSecret();
-
-    // update replicas
-    statefulSet.getSpec().setReplicas(replicas);
-
-    // update image
-    statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setImage(image);
-
-    // update image pull secrets
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getSpec()
-        .setImagePullSecrets(Collections.singletonList(new LocalObjectReference(imageSecret)));
-
-    // update limits
-    Limits limits = newSpec.getLimits();
-    ResourceRequirements resourceRequirements = ReconcilerUtils.createResourceLimits(limits);
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getSpec()
-        .getContainers()
-        // there is only one container in the pod
-        .get(0)
-        .setResources(resourceRequirements);
-
-    // update env
-    List<EnvVar> envs = ReconcilerUtils.computeJVMMemory(limits);
-    statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(envs);
-
-    // update configMapSha256
-    String cmSha = DigestUtils.sha(configMap.getData().toString());
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getMetadata()
-        .getAnnotations()
-        .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
-  }
-
-  @Override
   protected boolean needUpdateConfigMap(ConfigMap configMap) throws IOException {
     String configNodePropertyFileContent =
         configMap.getData().get(CommonConstant.CONFIG_NODE_PROPERTY_FILE_NAME);
@@ -142,7 +86,8 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
     properties.load(new StringReader(configNodePropertyFileContent));
 
     boolean needUpdate = false;
-    Map<String, Object> newProperties = newSpec.getIotdbConfig().getConfigNodeProperties();
+    Map<String, Object> newProperties =
+        ((ConfigNodeSpec) newSpec).getIotdbConfig().getConfigNodeProperties();
 
     if (newProperties.size()
         != properties.size() - configNodeConfig.getDefaultProperties().size()) {
@@ -173,63 +118,6 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected boolean needUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
-    boolean needUpdate = false;
-
-    StatefulSetSpec statefulSetSpec = statefulSet.getSpec();
-    String oldImage = statefulSetSpec.getTemplate().getSpec().getContainers().get(0).getImage();
-    if (!newSpec.getImage().equals(oldImage)) {
-      needUpdate = true;
-      LOGGER.info("image changed, old : {}, new : {}", oldImage, newSpec.getImage());
-    }
-
-    Map<String, Quantity> oldLimits =
-        statefulSet
-            .getSpec()
-            .getTemplate()
-            .getSpec()
-            .getContainers()
-            .get(0)
-            .getResources()
-            .getLimits();
-    Limits newLimits = newSpec.getLimits();
-    Quantity newCpuQuantity = new Quantity(String.valueOf(newLimits.getCpu()));
-    Quantity newMemQuantity =
-        new Quantity(
-            String.valueOf(newLimits.getMemory()) + CommonConstant.RESOURCE_STORAGE_UNIT_M);
-    if (!oldLimits.get(CommonConstant.RESOURCE_CPU).equals(newCpuQuantity)
-        || !oldLimits.get(CommonConstant.RESOURCE_MEMORY).equals(newMemQuantity)) {
-      needUpdate = true;
-      LOGGER.info("limits changed, old : {}, new : {}", oldLimits, newSpec.getLimits());
-    }
-
-    if (newSpec.getReplicas() != statefulSetSpec.getReplicas()) {
-      needUpdate = true;
-      LOGGER.info(
-          "replica changed, old : {}, new : {}",
-          statefulSetSpec.getReplicas(),
-          newSpec.getReplicas());
-    }
-
-    String newCmSha = DigestUtils.sha(configMap.getData().toString());
-    String oldCmSha =
-        statefulSet
-            .getSpec()
-            .getTemplate()
-            .getMetadata()
-            .getAnnotations()
-            .get(CommonConstant.ANNOTATION_KEY_SHA);
-    if (!newCmSha.equals(oldCmSha)) {
-      LOGGER.info("configmap updated, so we also need to update the statefulset");
-      needUpdate = true;
-    }
-
-    // todo storage vertical scale
-
-    return needUpdate;
-  }
-
-  @Override
   protected void internalUpdateConfigMap(ConfigMap configMap) throws IOException {
     String configNodePropertyFileContent =
         configMap.getData().get(CommonConstant.CONFIG_NODE_PROPERTY_FILE_NAME);
@@ -237,7 +125,8 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
     Properties properties = new Properties();
     properties.load(new StringReader(configNodePropertyFileContent));
 
-    Map<String, Object> newProperties = newSpec.getIotdbConfig().getConfigNodeProperties();
+    Map<String, Object> newProperties =
+        ((ConfigNodeSpec) newSpec).getIotdbConfig().getConfigNodeProperties();
     newProperties.forEach(
         (k, v) -> {
           if (properties.containsKey(k)) {

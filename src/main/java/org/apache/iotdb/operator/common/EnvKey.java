@@ -25,5 +25,8 @@ package org.apache.iotdb.operator.common;
 public enum EnvKey {
   // for jvm options in confignode-env.sh
   IOTDB_MAX_HEAP_MEMORY_SIZE,
-  IOTDB_MAX_DIRECT_MEMORY_SIZE;
+  IOTDB_MAX_DIRECT_MEMORY_SIZE,
+
+  // standalone or cluster
+  IOTDB_DATA_NODE_MODE;
 }

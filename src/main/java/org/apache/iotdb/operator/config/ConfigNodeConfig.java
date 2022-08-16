@@ -34,8 +34,6 @@ public class ConfigNodeConfig extends CommonConfig {
   private int internalPort = 22277;
   private int consensusPort = 22278;
   private int metricPort = 9091;
-  private String dataDir = "/iotdb/confignode/data";
-  private String logDir = "/iotdb/confignode/logs";
 
   private List<String> defaultProperties =
       Arrays.asList(
@@ -50,44 +48,8 @@ public class ConfigNodeConfig extends CommonConfig {
           + "&& cd /iotdb/confignode/conf "
           + "&& sh confignode-init.sh";
 
-  public void setInternalAddress(String internalAddress) {
-    this.internalAddress = internalAddress;
-  }
-
-  public void setInternalPort(int internalPort) {
-    this.internalPort = internalPort;
-  }
-
-  public void setConsensusPort(int consensusPort) {
-    this.consensusPort = consensusPort;
-  }
-
-  public void setMetricPort(int metricPort) {
-    this.metricPort = metricPort;
-  }
-
-  public void setDataDir(String dataDir) {
-    this.dataDir = dataDir;
-  }
-
-  public void setLogDir(String logDir) {
-    this.logDir = logDir;
-  }
-
-  public void setStartArgs(String startArgs) {
-    this.startArgs = startArgs;
-  }
-
   public ConfigNodeConfig() {
     super(Kind.CONFIG_NODE);
-  }
-
-  public String getDataDir() {
-    return dataDir;
-  }
-
-  public String getLogDir() {
-    return logDir;
   }
 
   public int getInternalPort() {
