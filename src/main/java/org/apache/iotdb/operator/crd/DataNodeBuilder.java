@@ -17,37 +17,30 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.crd;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
+public class DataNodeBuilder {
 
-import io.fabric8.kubernetes.client.KubernetesClient;
+  private CommonStatus commonStatus;
 
-import java.io.IOException;
+  private DataNodeSpec spec;
 
-/** All reconcilers should implement this interface. */
-public interface IReconciler {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
+  public DataNodeBuilder() {}
 
-  /**
-   * The entry of reconciler
-   *
-   * @throws IOException
-   */
-  void reconcile() throws IOException;
+  public DataNodeBuilder withStatus(CommonStatus commonStatus) {
+    this.commonStatus = commonStatus;
+    return this;
+  }
 
-  /** return the specific type of this reconciler. */
-  ReconcilerType getType();
+  public DataNodeBuilder withSpec(DataNodeSpec spec) {
+    this.spec = spec;
+    return this;
+  }
 
-  enum ReconcilerType {
-    DEFAULT,
-    CONFIG_NODE_STARTUP,
-    CONFIG_NODE_UPDATE,
-    CONFIG_NODE_STATEFUL_SET,
-    CONFIG_NODE_DELETE,
-    DATA_NODE_STARTUP,
-    DATA_NODE_STATEFUL_SET,
-    DATA_NODE_UPDATE,
-    DATA_NODE_DELETE
+  public DataNode build() {
+    DataNode dataNode = new DataNode();
+    dataNode.setStatus(commonStatus);
+    dataNode.setSpec(spec);
+    return dataNode;
   }
 }

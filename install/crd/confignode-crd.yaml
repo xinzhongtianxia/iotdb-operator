@@ -52,7 +52,7 @@ spec:
                   description: The reference to secret in the same namespace to use for pulling the confignode image.
                 replicas:
                   type: integer
-                  minimum: 1
+                  minimum: 3
                   description: The number of config nodes in this cluster
                 podDistributeStrategy:
                   type: string
