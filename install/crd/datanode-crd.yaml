@@ -28,17 +28,17 @@ spec:
   # list of versions supported by this CustomResourceDefinition
   versions:
     - name: v1
-      # Each version can be enabled/disabled by Served flag.
       served: true
-      # One and only one version must be marked as the storage version.
       storage: true
-      # AdditionalPrinterColumns specifies additional columns returned in Table output.
       additionalPrinterColumns:
-        - name: Desired replicas
+        - name: READY
+          description: The desired number of DataNode replicas
+          jsonPath: .status.available
+          type: integer
+        - name: DESIRED
           description: The desired number of DataNode replicas
           jsonPath: .spec.replicas
           type: integer
-          priority: 1
       schema:
         openAPIV3Schema:
           type: object
@@ -46,6 +46,15 @@ spec:
             spec:
               type: object
               properties:
+                mode:
+                  type: string
+                  description: iotdb datanode can be started in either cluster or standalone mode.
+                  enum:
+                    - standalone
+                    - cluster
+                confignodeName:
+                  type: string
+                  description: The name of available ConfigNode which DataNode will register itself to.
                 image:
                   type: string
                   pattern: .+:.+
@@ -55,8 +64,8 @@ spec:
                   description: The reference to secret in the same namespace to use for pulling the datanode image.
                 replicas:
                   type: integer
-                  minimum: 1
-                  description: The number of data nodes in this cluster
+                  minimum: 3
+                  description: The number of data nodes.
                 podDistributeStrategy:
                   type: string
                   enum:
@@ -64,8 +73,7 @@ spec:
                     - required
                   description: The pod's affinity rules. preferred means we will make a
                     best effort attempt to assign pods to different nodes. required means
-                    we will not assign a pod to the node which has already been assigned to
-                    a confignode pod which belongs to the same iotdb-cluster.
+                    we will not assign a pod to the node that there is already a datanode pod belongs to the same iotdb-cluster running on.
                 limits:
                   type: object
                   properties:
@@ -82,13 +90,7 @@ spec:
                       enum:
                         - NodePort
                         - ClusterIP
-                        - LoadBalancer
                       description: The type of RPC port serves IoTDB-client, defaults to ClusterIP.
-                    nodePort:
-                      type: integer
-                      minimum: 30000
-                      maximum: 32767
-                      description: The node port to expose RPC service, if service type is not NodePort, this param will be omitted.
                     externalTrafficPolicy:
                       type: string
                       enum:
@@ -119,12 +121,12 @@ spec:
                     work well.
               required:
                 - image
-                - replicas
+                - mode
                 - storage
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
-              description: Simple message that indicates configNodes's current state.
+              description: Simple message that indicates dataNodes's current state.
       subresources:
         status: {}
   # either Namespaced or Cluster

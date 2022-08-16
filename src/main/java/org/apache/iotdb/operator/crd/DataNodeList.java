@@ -17,37 +17,9 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.controller.reconciler;
+package org.apache.iotdb.operator.crd;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
+import io.fabric8.kubernetes.api.model.Namespaced;
+import io.fabric8.kubernetes.client.CustomResourceList;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
-
-import java.io.IOException;
-
-/** All reconcilers should implement this interface. */
-public interface IReconciler {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
-
-  /**
-   * The entry of reconciler
-   *
-   * @throws IOException
-   */
-  void reconcile() throws IOException;
-
-  /** return the specific type of this reconciler. */
-  ReconcilerType getType();
-
-  enum ReconcilerType {
-    DEFAULT,
-    CONFIG_NODE_STARTUP,
-    CONFIG_NODE_UPDATE,
-    CONFIG_NODE_STATEFUL_SET,
-    CONFIG_NODE_DELETE,
-    DATA_NODE_STARTUP,
-    DATA_NODE_STATEFUL_SET,
-    DATA_NODE_UPDATE,
-    DATA_NODE_DELETE
-  }
-}
+public class DataNodeList extends CustomResourceList<DataNode> implements Namespaced {}
