@@ -24,7 +24,7 @@ import org.apache.iotdb.operator.crd.Kind;
 import io.fabric8.kubernetes.client.Watcher.Action;
 
 public class EventManager {
-  private static final EventManager instance = new EventManager();
+  private static final EventManager INSTANCE = new EventManager();
 
   public String getEventId(Action action, Kind kind, String resourceVersion) {
     return action.name() + "-" + kind.getName() + "-" + resourceVersion;
@@ -33,6 +33,6 @@ public class EventManager {
   private EventManager() {}
 
   public static EventManager getInstance() {
-    return instance;
+    return INSTANCE;
   }
 }

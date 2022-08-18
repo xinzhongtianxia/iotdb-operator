@@ -64,7 +64,7 @@ spec:
                   description: The reference to secret in the same namespace to use for pulling the datanode image.
                 replicas:
                   type: integer
-                  minimum: 3
+                  minimum: 1
                   description: The number of data nodes.
                 podDistributeStrategy:
                   type: string

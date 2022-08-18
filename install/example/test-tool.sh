@@ -28,4 +28,6 @@ for (( i = 1; i < 5; i++ )); do
     sed -i "" "s/pv.*$i$/pvs\/pv$dir$i/g" pv.yaml
 done
 
-kubectl delete pv --ignore-not-found=true local-1 local-2 local-3 local-4 && kubectl apply -f pv.yaml && kubectl apply -f confignode-example.yaml
+kubectl delete pv --ignore-not-found=true local-1 local-2 local-3 local-4 \
+ && kubectl apply -f pv.yaml \
+ && kubectl apply -f datanode-example.yaml

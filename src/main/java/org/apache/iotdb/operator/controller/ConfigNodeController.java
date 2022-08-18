@@ -19,8 +19,6 @@
 
 package org.apache.iotdb.operator.controller;
 
-import org.apache.iotdb.operator.common.CommonConstant;
-import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.controller.reconciler.DefaultReconciler;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeDeleteReconciler;
@@ -28,121 +26,39 @@ import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeStar
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeUpdateReconciler;
 import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.event.BaseEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
+import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.Watcher.Action;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.Resource;
-import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Watch, receive and dispatch all events about ConfigNode AND its related resources from Kubernetes
  * Server with in the specific namespace.
  */
-public class ConfigNodeController implements IController {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeController.class);
+public class ConfigNodeController extends AbstractCustomResourceController {
 
-  private final BlockingQueue<ConfigNodeEvent> configNodeEvents = new LinkedBlockingQueue<>();
-
-  private final ExecutorService configNodeExecutor = Executors.newSingleThreadExecutor();
-
-  private void receiveConfigNodeEvent(ConfigNodeEvent event) {
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("received event :\n {}", event);
-    } else {
-      LOGGER.info("received event : {}", event.getEventId());
-    }
-    configNodeEvents.add(event);
+  public ConfigNodeController() {
+    super(Kind.CONFIG_NODE);
   }
 
-  public Kind getKind() {
-    return Kind.CONFIG_NODE;
-  }
-
-  public void reconcileConfigNode(ConfigNodeEvent event) throws IOException {
-    IReconciler reconciler = getReconciler(event);
-    LOGGER.info("{} begin to reconcile, eventId = {}", reconciler.getType(), event.getEventId());
-    reconciler.reconcile();
-    LOGGER.info("{} ended reconcile, eventId = {}", reconciler.getType(), event.getEventId());
-  }
-
-  private IReconciler getReconciler(ConfigNodeEvent event) {
+  @Override
+  protected IReconciler getReconciler(BaseEvent event) {
     Action action = event.getAction();
     switch (action) {
       case ADDED:
-        return new ConfigNodeStartUpReconciler(event);
+        return new ConfigNodeStartUpReconciler((CustomResourceEvent) event);
       case DELETED:
-        return new ConfigNodeDeleteReconciler(event);
+        return new ConfigNodeDeleteReconciler((CustomResourceEvent) event);
       case MODIFIED:
-        return new ConfigNodeUpdateReconciler(event);
+        return new ConfigNodeUpdateReconciler((CustomResourceEvent) event);
       default:
         return new DefaultReconciler(event);
     }
   }
 
   @Override
-  public void startDispatch() {
-    configNodeExecutor.execute(
-        () -> {
-          LOGGER.info("start dispatching ConfigNode events...");
-          while (!Thread.interrupted()) {
-            ConfigNodeEvent event = null;
-            try {
-              event = configNodeEvents.take();
-              reconcileConfigNode(event);
-            } catch (InterruptedException e) {
-              LOGGER.warn("thread has been interrupted!", e);
-              Thread.currentThread().interrupt();
-            } catch (Exception e) {
-              assert event != null;
-              LOGGER.error("event handle exception, eventId = {}", event.getEventId(), e);
-            }
-          }
-        });
-  }
-
-  @Override
-  public void startWatch() {
-    MixedOperation<ConfigNode, KubernetesResourceList<ConfigNode>, Resource<ConfigNode>> resources =
-        kubernetesClient.resources(ConfigNode.class);
-    String scope = IoTDBOperatorConfig.getInstance().getScope();
-    if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
-      String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
-      resources.inNamespace(namespace);
-    }
-    resources.inform(
-        new ResourceEventHandler<ConfigNode>() {
-          @Override
-          public void onAdd(ConfigNode obj) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.ADDED, obj);
-            if (event.isSyntheticAdded()) {
-              LOGGER.warn("received synthetic ADDED event, convert it to MODIFIED : \n {}", event);
-              // we should treat synthetic added events as modified events.
-              event = new ConfigNodeEvent(Action.MODIFIED, obj);
-            }
-            receiveConfigNodeEvent(event);
-          }
-
-          @Override
-          public void onUpdate(ConfigNode oldObj, ConfigNode newObj) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.MODIFIED, newObj, oldObj);
-            receiveConfigNodeEvent(event);
-          }
-
-          @Override
-          public void onDelete(ConfigNode obj, boolean deletedFinalStateUnknown) {
-            ConfigNodeEvent event = new ConfigNodeEvent(Action.DELETED, obj);
-            receiveConfigNodeEvent(event);
-          }
-        });
+  protected Class<? extends HasMetadata> getResourceType() {
+    return ConfigNode.class;
   }
 }

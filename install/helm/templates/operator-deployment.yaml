@@ -59,7 +59,18 @@ spec:
           ports:
             ## for metrics and probes
             - containerPort: 80
-          ## todo add probes
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
           resources:
             limits:
               cpu: {{ .Values.cpu }}
