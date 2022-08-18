@@ -3,7 +3,8 @@ package org.apache.iotdb.operator.controller.reconciler.datanode;
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.DataNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
-import org.apache.iotdb.operator.crd.CommonStatus;
+import org.apache.iotdb.operator.crd.DataNode;
+import org.apache.iotdb.operator.crd.DataNodeBuilder;
 import org.apache.iotdb.operator.crd.DataNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
@@ -25,22 +26,31 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
 
   private final DataNodeConfig dataNodeConfig = DataNodeConfig.getInstance();
 
-  private final CommonStatus oldStatus;
-  private final CommonStatus newStatus;
-
   public DataNodeUpdateReconciler(CustomResourceEvent event) {
     super(event.getResource().getMetadata(), Kind.DATA_NODE, event.getResource().getSpec());
-    newStatus = event.getResource().getStatus();
-    oldStatus = event.getOldResource().getStatus();
 
     // todo there should be an admission-validation-web-hook to prevent changing immutable configs
     // replace below hard-code by web hook
     ((DataNodeSpec) newSpec).setMode(((DataNodeSpec) event.getOldResource().getSpec()).getMode());
-    if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
+    if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)
+        && newSpec.getReplicas() != 1) {
+      LOGGER.warn(
+          "replicas has been set to {}, but in STANDALONE mode, replicas should always be 1 !!! Now"
+              + "we set it to 1",
+          newSpec.getReplicas());
       newSpec.setReplicas(1);
     } else {
-      if (newSpec.getReplicas() < 3) {
-        newSpec.setReplicas(3);
+      int newReplicas = newSpec.getReplicas();
+      if (newReplicas < 3) {
+        int oldReplica = event.getOldResource().getSpec().getReplicas();
+        if (newReplicas != oldReplica) {
+          LOGGER.warn(
+              "replicas has been set to {}, but in STANDALONE mode, replicas should always be "
+                  + "bigger than or equals to 3 !!!  Now we set it to its current value {}",
+              oldReplica,
+              newReplicas);
+          newSpec.setReplicas(oldReplica);
+        }
       }
     }
   }
@@ -48,16 +58,6 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
   @Override
   public ReconcilerType getType() {
     return ReconcilerType.DATA_NODE_UPDATE;
-  }
-
-  @Override
-  protected Object getNewStatus() {
-    return newStatus;
-  }
-
-  @Override
-  protected Object getOldStatus() {
-    return oldStatus;
   }
 
   @Override
@@ -142,5 +142,36 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
     }
 
     return needUpdate;
+  }
+
+  @Override
+  protected void patchPartitionToAnnotations() {
+
+    int rollingUpdatePartition = newSpec.getReplicas() - 1;
+    DataNode dataNode =
+        kubernetesClient
+            .resources(DataNode.class)
+            .inNamespace(meta.getNamespace())
+            .withName(meta.getName())
+            .require();
+    String currentPartition =
+        dataNode
+            .getMetadata()
+            .getAnnotations()
+            .getOrDefault(CommonConstant.ANNOTATION_KEY_PARTITION, "0");
+
+    if (Integer.parseInt(currentPartition) != rollingUpdatePartition) {
+      dataNode
+          .getMetadata()
+          .getAnnotations()
+          .put(CommonConstant.ANNOTATION_KEY_PARTITION, String.valueOf(rollingUpdatePartition));
+      DataNode dataNodeWithOnlyAnnotations =
+          new DataNodeBuilder().withMetadata(dataNode.getMetadata()).build();
+
+      kubernetesClient
+          .resource(dataNodeWithOnlyAnnotations)
+          .inNamespace(meta.getNamespace())
+          .patch();
+    }
   }
 }

@@ -19,11 +19,15 @@
 
 package org.apache.iotdb.operator.crd;
 
+import io.fabric8.kubernetes.api.model.ObjectMeta;
+
 public class ConfigNodeBuilder {
 
   private CommonStatus commonStatus;
 
   private ConfigNodeSpec spec;
+
+  private ObjectMeta metadata;
 
   public ConfigNodeBuilder() {}
 
@@ -37,10 +41,22 @@ public class ConfigNodeBuilder {
     return this;
   }
 
+  public ConfigNodeBuilder withMetadata(ObjectMeta metadata) {
+    this.metadata = metadata;
+    return this;
+  }
+
   public ConfigNode build() {
     ConfigNode configNode = new ConfigNode();
-    configNode.setStatus(commonStatus);
-    configNode.setSpec(spec);
+    if (commonStatus != null) {
+      configNode.setStatus(commonStatus);
+    }
+    if (spec != null) {
+      configNode.setSpec(spec);
+    }
+    if (metadata != null) {
+      configNode.setMetadata(metadata);
+    }
     return configNode;
   }
 }
