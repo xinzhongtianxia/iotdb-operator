@@ -35,6 +35,10 @@ public class CommonConfig {
     additionalLabels.put(
         CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
     additionalLabels.put(CommonConstant.LABEL_KEY_APP_KIND, kind.getName().toLowerCase());
+
+    additionalLabels.put(
+        CommonConstant.ANNOTATION_KEY_OPERATOR_VERSION,
+        IoTDBOperatorConfig.getInstance().getVersion());
   }
 
   public Map<String, String> getAdditionalLabels() {
