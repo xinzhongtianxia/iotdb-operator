@@ -22,6 +22,7 @@ package org.apache.iotdb.operator;
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.exception.ResourceAlreadyExistException;
+import org.apache.iotdb.operator.service.HttpService;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.slf4j.Logger;
@@ -45,8 +46,16 @@ public class Main {
   private void run() throws ResourceAlreadyExistException, IOException {
     String scope = IoTDBOperatorConfig.getInstance().getScope();
     checkIfAlreadyExist(scope);
+
     startWatcher();
-    LOGGER.info("IoTDB Operator stated in {} scope", scope);
+
+    startHttpService();
+
+    LOGGER.info("IoTDB Operator started in {} scope", scope);
+  }
+
+  private void startHttpService() {
+    HttpService.getInstance().start();
   }
 
   private void checkIfAlreadyExist(String scope) throws ResourceAlreadyExistException {
@@ -58,6 +67,7 @@ public class Main {
           client
               .apps()
               .deployments()
+              .inAnyNamespace()
               .withLabels(IoTDBOperatorConfig.getInstance().getOperatorDeploymentLabels())
               .resources()
               .filter(d -> !d.get().getMetadata().getName().equals(name))

@@ -22,8 +22,7 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 import org.apache.iotdb.operator.controller.reconciler.DeleteReconciler;
 import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
-import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +30,8 @@ import org.slf4j.LoggerFactory;
 public class ConfigNodeDeleteReconciler extends DeleteReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeDeleteReconciler.class);
 
-  public ConfigNodeDeleteReconciler(BaseEvent baseEvent) {
-    super(
-        ((ConfigNodeEvent) baseEvent).getResource().getSpec(),
-        ((ConfigNodeEvent) baseEvent).getResource().getMetadata(),
-        Kind.CONFIG_NODE);
+  public ConfigNodeDeleteReconciler(CustomResourceEvent event) {
+    super(event.getResource().getSpec(), event.getResource().getMetadata(), Kind.CONFIG_NODE);
   }
 
   @Override

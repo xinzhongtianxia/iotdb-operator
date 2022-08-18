@@ -20,6 +20,7 @@
 package org.apache.iotdb.operator.controller.reconciler;
 
 import org.apache.iotdb.operator.common.CommonConstant;
+import org.apache.iotdb.operator.common.EnvKey;
 import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.crd.Limits;
@@ -158,8 +159,7 @@ public abstract class UpdateReconciler implements IReconciler {
         .setResources(resourceRequirements);
 
     // update env
-    List<EnvVar> envs = ReconcilerUtils.computeJVMMemory(limits);
-    statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setEnv(envs);
+    updateEnvs(statefulSet, limits);
 
     // update configMapSha256
     String cmSha = DigestUtils.sha(configMap.getData().toString());
@@ -169,6 +169,16 @@ public abstract class UpdateReconciler implements IReconciler {
         .getMetadata()
         .getAnnotations()
         .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
+  }
+
+  private void updateEnvs(StatefulSet statefulSet, Limits limits) {
+    List<EnvVar> envVars =
+        statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).getEnv();
+    envVars.removeIf(
+        envVar ->
+            envVar.getName().equals(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name())
+                || envVar.getName().equals(EnvKey.IOTDB_MAX_HEAP_MEMORY_SIZE.name()));
+    envVars.addAll(ReconcilerUtils.computeJVMMemory(limits));
   }
 
   protected abstract void internalUpdateConfigMap(ConfigMap configMap) throws IOException;

@@ -24,10 +24,8 @@ import org.apache.iotdb.operator.config.IoTDBOperatorConfig;
 import org.apache.iotdb.operator.event.KubernetesEventEvent;
 
 import io.fabric8.kubernetes.api.model.Event;
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.client.Watcher.Action;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.kubernetes.client.dsl.Informable;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,14 +44,29 @@ public class KubernetesEventController implements IController {
 
   @Override
   public void startWatch() {
-    MixedOperation<Event, KubernetesResourceList<Event>, Resource<Event>> resources =
-        kubernetesClient.resources(Event.class);
+
+    Informable<Event> informable;
+
     String scope = IoTDBOperatorConfig.getInstance().getScope();
     if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
       String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
-      resources.inNamespace(namespace);
+      informable =
+          kubernetesClient
+              .resources(Event.class)
+              .inNamespace(namespace)
+              .withLabel(
+                  CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
+    } else {
+      informable =
+          kubernetesClient
+              .resources(Event.class)
+              .inAnyNamespace()
+              .withLabel(
+                  CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
     }
-    resources.inform(
+
+    LOGGER.info("start watch events...");
+    informable.inform(
         new ResourceEventHandler<Event>() {
           @Override
           public void onAdd(Event obj) {

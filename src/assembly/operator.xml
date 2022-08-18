@@ -26,7 +26,7 @@
   <includeBaseDirectory>false</includeBaseDirectory>
   <dependencySets>
     <dependencySet>
-      <outputDirectory>/lib</outputDirectory>
+      <outputDirectory>lib</outputDirectory>
     </dependencySet>
   </dependencySets>
   <fileSets>
@@ -34,6 +34,10 @@
       <directory>src/assembly/resources/sbin</directory>
       <outputDirectory>sbin</outputDirectory>
       <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <directory>src/main/resources</directory>
+      <outputDirectory>${file.separator}</outputDirectory>
     </fileSet>
   </fileSets>
 </assembly>

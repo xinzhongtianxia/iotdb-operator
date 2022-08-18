@@ -7,8 +7,7 @@ import org.apache.iotdb.operator.config.DataNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
 import org.apache.iotdb.operator.crd.DataNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
-import org.apache.iotdb.operator.event.DataNodeEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import org.apache.commons.io.IOUtils;
@@ -28,6 +27,7 @@ import io.fabric8.kubernetes.api.model.ServicePortBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -39,13 +39,13 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
 
   private final DataNodeSpec dataNodeSpec;
 
-  public DataNodeStartUpReconciler(BaseEvent event) {
+  public DataNodeStartUpReconciler(CustomResourceEvent event) {
     super(
-        ((DataNodeEvent) event).getResource().getSpec(),
-        ((DataNodeEvent) event).getResource().getMetadata(),
+        event.getResource().getSpec(),
+        event.getResource().getMetadata(),
         event.getKind(),
         event.getEventId());
-    this.dataNodeSpec = ((DataNodeEvent) event).getResource().getSpec();
+    this.dataNodeSpec = (DataNodeSpec) event.getResource().getSpec();
     if (dataNodeSpec.getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
       dataNodeSpec.setReplicas(1);
     }
@@ -107,7 +107,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         .append("rest_service_port=")
         .append(dataNodeConfig.getRestPort());
     String restConfig = restConfigSb.toString();
-    LOGGER.info("========== iotdb-datanode.properties : ============ \n {}", restConfig);
+    LOGGER.info("========== iotdb-rest.properties : ============ \n {}", restConfig);
     configFiles.put(CommonConstant.DATA_NODE_REST_PROPERTY_FILE_NAME, restConfig);
 
     // read init script into ConfigMap
@@ -115,7 +115,10 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         IOUtils.toString(
             getClass()
                 .getResourceAsStream(
-                    File.separator + CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME),
+                    File.separator
+                        + "conf"
+                        + File.separator
+                        + CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME),
             Charset.defaultCharset());
     LOGGER.info("========== datanode-init.sh : ============ : \n {}", scriptContent);
     configFiles.put(CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
@@ -138,7 +141,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
               + ".svc.cluster.local:"
               + ConfigNodeConfig.getInstance().getInternalPort();
 
-      defaultConfigMap.put(CommonConstant.CONFIG_NODE_TARGET_CONFIG_NODE, targetConfigNode);
+      defaultConfigMap.put(CommonConstant.DATA_NODE_TARGET_CONFIG_NODE, targetConfigNode);
     }
 
     // set addresses and ports
@@ -175,6 +178,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             .withName(EnvKey.IOTDB_DATA_NODE_MODE.name())
             .withValue(dataNodeSpec.getMode())
             .build());
+    LOGGER.info("envs : {}", envVars);
     return envVars;
   }
 
@@ -211,19 +215,19 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
 
     ContainerPort dataRegionConsensusPort =
         new ContainerPortBuilder()
-            .withName("data-region-consensus")
+            .withName("data-region")
             .withContainerPort(dataNodeConfig.getDataRegionConsensusPort())
             .build();
 
     ContainerPort schemaRegionConsensusPort =
         new ContainerPortBuilder()
-            .withName("schema-region-consensus")
+            .withName("schema-region")
             .withContainerPort(dataNodeConfig.getSchemaRegionConsensusPort())
             .build();
 
     ContainerPort mppDataExchangePort =
         new ContainerPortBuilder()
-            .withName("mpp-data-exchange")
+            .withName("mpp-exchange")
             .withContainerPort(dataNodeConfig.getMppDataExchangePort())
             .build();
 
@@ -262,7 +266,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
           .withNewPort(dataNodeConfig.getRestPort())
           .endHttpGet()
           .withPeriodSeconds(3)
-          .withFailureThreshold(60)
+          .withFailureThreshold(3)
           .build();
     }
 
@@ -277,23 +281,89 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         .withNewPort(dataNodeConfig.getRpcPort())
         .endTcpSocket()
         .withPeriodSeconds(3)
-        .withFailureThreshold(60)
+        .withFailureThreshold(10)
         .build();
   }
 
   @Override
   protected void createServices() {
 
-    String serviceType = dataNodeSpec.getService().getType();
-
-    // port for coordinator's communication between cluster nodes.
-    int internalPort = dataNodeConfig.getInternalPort();
-    ServicePort internalServicePort =
+    // port for outputting metrics data
+    int metricPort = dataNodeConfig.getMetricPort();
+    ServicePort metricServicePort =
         new ServicePortBuilder()
-            .withNewTargetPort(internalPort)
-            .withPort(internalPort)
-            .withName("internal")
+            .withNewTargetPort(metricPort)
+            .withPort(metricPort)
+            .withName("metric")
             .build();
+
+    List<ServicePort> internalServicePorts = new ArrayList<>();
+    internalServicePorts.add(metricServicePort);
+
+    if (dataNodeSpec.getMode().equals(CommonConstant.DATA_NODE_MODE_CLUSTER)) {
+      // port for coordinator's communication between cluster nodes.
+      int internalPort = dataNodeConfig.getInternalPort();
+      ServicePort internalServicePort =
+          new ServicePortBuilder()
+              .withNewTargetPort(internalPort)
+              .withPort(internalPort)
+              .withName("internal")
+              .build();
+
+      // port for consensus's communication for data region between cluster nodes.
+      int dataRegionConsensusPort = dataNodeConfig.getDataRegionConsensusPort();
+      ServicePort dataRegionConsensusServicePort =
+          new ServicePortBuilder()
+              .withNewTargetPort(dataRegionConsensusPort)
+              .withPort(dataRegionConsensusPort)
+              .withName("data-region")
+              .build();
+
+      // port for consensus's communication for schema region between cluster nodes.
+      int schemaRegionConsensusPort = dataNodeConfig.getSchemaRegionConsensusPort();
+      ServicePort schemaRegionConsensusServicePort =
+          new ServicePortBuilder()
+              .withNewTargetPort(schemaRegionConsensusPort)
+              .withPort(schemaRegionConsensusPort)
+              .withName("schema-region")
+              .build();
+
+      // por for data exchange in mpp framework
+      int mppDataExchangePort = dataNodeConfig.getMppDataExchangePort();
+      ServicePort mppDataExchangeServicePort =
+          new ServicePortBuilder()
+              .withNewTargetPort(mppDataExchangePort)
+              .withPort(mppDataExchangePort)
+              .withName("mpp-exchange")
+              .build();
+
+      internalServicePorts.add(internalServicePort);
+      internalServicePorts.add(mppDataExchangeServicePort);
+      internalServicePorts.add(dataRegionConsensusServicePort);
+      internalServicePorts.add(schemaRegionConsensusServicePort);
+    }
+
+    // for internal services
+    Service internalService =
+        new ServiceBuilder()
+            .withNewMetadata()
+            .withName(subResourceName)
+            .withNamespace(metadata.getNamespace())
+            .withLabels(getLabels())
+            .endMetadata()
+            .withNewSpec()
+            .withSelector(getLabels())
+            .withPorts(internalServicePorts)
+            .withClusterIP("None")
+            .endSpec()
+            .build();
+    kubernetesClient
+        .services()
+        .inNamespace(metadata.getNamespace())
+        .resource(internalService)
+        .createOrReplace();
+
+    String serviceType = dataNodeSpec.getService().getType();
 
     // port for external data insert and query
     int rpcPort = dataNodeConfig.getRpcPort();
@@ -313,66 +383,10 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             .withName("rest")
             .build();
 
-    // port for outputting metrics data
-    int metricPort = dataNodeConfig.getMetricPort();
-    ServicePort metricServicePort =
-        new ServicePortBuilder()
-            .withNewTargetPort(metricPort)
-            .withPort(metricPort)
-            .withName("metric")
-            .build();
-
-    // port for consensus's communication for data region between cluster nodes.
-    int dataRegionConsensusPort = dataNodeConfig.getDataRegionConsensusPort();
-    ServicePort dataRegionConsensusServicePort =
-        new ServicePortBuilder()
-            .withNewTargetPort(dataRegionConsensusPort)
-            .withPort(dataRegionConsensusPort)
-            .withName("data-region-consensus")
-            .build();
-
-    // port for consensus's communication for schema region between cluster nodes.
-    int schemaRegionConsensusPort = dataNodeConfig.getSchemaRegionConsensusPort();
-    ServicePort schemaRegionConsensusServicePort =
-        new ServicePortBuilder()
-            .withNewTargetPort(schemaRegionConsensusPort)
-            .withPort(schemaRegionConsensusPort)
-            .withName("schema-region-consensus")
-            .build();
-
-    // por for data exchange in mpp framework
-    int mppDataExchangePort = dataNodeConfig.getMppDataExchangePort();
-    ServicePort mppDataExchangeServicePort =
-        new ServicePortBuilder()
-            .withNewTargetPort(mppDataExchangePort)
-            .withPort(mppDataExchangePort)
-            .withName("mpp-data-exchange")
-            .build();
-
     if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
       rpcServicePort.setNodePort(dataNodeConfig.getRpcNodePort());
       restServicePort.setNodePort(dataNodeConfig.getRestNodePort());
     }
-
-    // for consensus among data nodes
-    Service internalService =
-        new ServiceBuilder()
-            .withNewMetadata()
-            .withName(subResourceName)
-            .withNamespace(metadata.getNamespace())
-            .withLabels(getLabels())
-            .endMetadata()
-            .withNewSpec()
-            .withSelector(getLabels())
-            .withPorts(
-                internalServicePort,
-                dataRegionConsensusServicePort,
-                schemaRegionConsensusServicePort,
-                mppDataExchangeServicePort,
-                metricServicePort)
-            .withClusterIP("None")
-            .endSpec()
-            .build();
 
     // for rpc from datanode and metrics from prometheus
     Service externalService =
@@ -388,11 +402,6 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             .endSpec()
             .build();
 
-    // set service type to NodePort if needed
-    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
-      externalService.getSpec().setType(CommonConstant.SERVICE_TYPE_NODE_PORT);
-    }
-
     // set external traffic policy
     if (dataNodeSpec
         .getService()
@@ -403,15 +412,33 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
           .setExternalTrafficPolicy(CommonConstant.SERVICE_EXTERNAL_TRAFFIC_POLICY_LOCAL);
     }
 
-    kubernetesClient
-        .services()
-        .inNamespace(metadata.getNamespace())
-        .resource(internalService)
-        .create();
+    // set service type to NodePort if needed
+    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
+      externalService.getSpec().setType(CommonConstant.SERVICE_TYPE_NODE_PORT);
+
+      // if there is already a service with the specific node port, delete it first
+      Service service =
+          kubernetesClient
+              .services()
+              .inNamespace(metadata.getNamespace())
+              .resource(externalService)
+              .get();
+      if (service != null) {
+        LOGGER.warn(
+            "there is already a service running, may be caused by last failed deploy, delete it now! service = {}",
+            service);
+        kubernetesClient
+            .services()
+            .inNamespace(metadata.getNamespace())
+            .resource(externalService)
+            .delete();
+      }
+    }
+
     kubernetesClient
         .services()
         .inNamespace(metadata.getNamespace())
         .resource(externalService)
-        .create();
+        .createOrReplace();
   }
 }

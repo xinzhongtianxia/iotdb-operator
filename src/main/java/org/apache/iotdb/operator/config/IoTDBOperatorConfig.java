@@ -88,7 +88,7 @@ public class IoTDBOperatorConfig {
   private void readConfigFromEnv() {
     setNamespace(System.getenv("namespace"));
     setName(System.getenv("name"));
-    setScope(System.getenv("scope"));
+    //    setScope(System.getenv("scope"));
   }
 
   public String getName() {

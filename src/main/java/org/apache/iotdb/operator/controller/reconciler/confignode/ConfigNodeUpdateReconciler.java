@@ -25,8 +25,7 @@ import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
-import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import org.slf4j.Logger;
@@ -48,17 +47,10 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   private final CommonStatus oldStatus;
   private final CommonStatus newStatus;
 
-  public ConfigNodeUpdateReconciler(BaseEvent event) {
-    super(
-        ((ConfigNodeEvent) event).getResource().getMetadata(),
-        Kind.CONFIG_NODE,
-        ((ConfigNodeEvent) event).getResource().getSpec());
-    newStatus = ((ConfigNodeEvent) event).getResource().getStatus();
-    if (((ConfigNodeEvent) event).getOldResource() != null) {
-      oldStatus = ((ConfigNodeEvent) event).getOldResource().getStatus();
-    } else {
-      oldStatus = new CommonStatus();
-    }
+  public ConfigNodeUpdateReconciler(CustomResourceEvent event) {
+    super(event.getResource().getMetadata(), Kind.CONFIG_NODE, event.getResource().getSpec());
+    newStatus = event.getResource().getStatus();
+    oldStatus = event.getOldResource().getStatus();
   }
 
   @Override

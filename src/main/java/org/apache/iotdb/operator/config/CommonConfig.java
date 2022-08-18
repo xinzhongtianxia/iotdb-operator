@@ -32,7 +32,8 @@ public class CommonConfig {
   private Map<String, String> additionalLabels = new HashMap<>();
 
   public CommonConfig(Kind kind) {
-    additionalLabels.put(CommonConstant.LABEL_KEY_MANAGED_BY, "iotdb");
+    additionalLabels.put(
+        CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
     additionalLabels.put(CommonConstant.LABEL_KEY_APP_KIND, kind.getName().toLowerCase());
   }
 

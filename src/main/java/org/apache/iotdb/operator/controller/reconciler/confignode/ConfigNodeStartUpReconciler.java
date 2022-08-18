@@ -23,8 +23,7 @@ import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
-import org.apache.iotdb.operator.event.BaseEvent;
-import org.apache.iotdb.operator.event.ConfigNodeEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import org.apache.commons.io.IOUtils;
@@ -54,10 +53,10 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfigNodeStartUpReconciler.class);
   private final ConfigNodeConfig configNodeConfig = ConfigNodeConfig.getInstance();
 
-  public ConfigNodeStartUpReconciler(BaseEvent event) {
+  public ConfigNodeStartUpReconciler(CustomResourceEvent event) {
     super(
-        ((ConfigNodeEvent) event).getResource().getSpec(),
-        ((ConfigNodeEvent) event).getResource().getMetadata(),
+        event.getResource().getSpec(),
+        event.getResource().getMetadata(),
         event.getKind(),
         event.getEventId());
   }
@@ -104,7 +103,10 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         IOUtils.toString(
             getClass()
                 .getResourceAsStream(
-                    File.separator + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME),
+                    File.separator
+                        + "conf"
+                        + File.separator
+                        + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME),
             Charset.defaultCharset());
     LOGGER.info("========== confignode-init.sh : ============  : \n {}", scriptContent);
     configFiles.put(CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);

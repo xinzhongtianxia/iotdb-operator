@@ -19,43 +19,26 @@
 
 package org.apache.iotdb.operator.event;
 
+import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.CommonStatus;
-import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.Watcher.Action;
 
-public class ConfigNodeEvent extends BaseEvent {
+public class CustomResourceEvent extends BaseEvent {
 
-  private final CustomResource<ConfigNodeSpec, CommonStatus> oldResource;
+  private final CustomResource<? extends CommonSpec, CommonStatus> oldResource;
+  private final CustomResource<? extends CommonSpec, CommonStatus> resource;
 
-  private final CustomResource<ConfigNodeSpec, CommonStatus> resource;
-
-  public ConfigNodeEvent(Action action, CustomResource<ConfigNodeSpec, CommonStatus> resource) {
-    this(action, resource, null);
-  }
-
-  public ConfigNodeEvent(
+  public CustomResourceEvent(
       Action action,
-      CustomResource<ConfigNodeSpec, CommonStatus> resource,
-      CustomResource<ConfigNodeSpec, CommonStatus> oldResource) {
-    super(action, Kind.CONFIG_NODE, resource.getMetadata().getResourceVersion());
+      Kind kind,
+      CustomResource<? extends CommonSpec, CommonStatus> resource,
+      CustomResource<? extends CommonSpec, CommonStatus> oldResource) {
+    super(action, kind, resource.getVersion());
     this.resource = resource;
     this.oldResource = oldResource;
-  }
-
-  public CustomResource<ConfigNodeSpec, CommonStatus> getOldResource() {
-    return oldResource;
-  }
-
-  public CustomResource<ConfigNodeSpec, CommonStatus> getResource() {
-    return resource;
-  }
-
-  @Override
-  public String toString() {
-    return "ConfigNodeEvent{" + "resource=" + resource + ", eventId='" + eventId + '\'' + '}';
   }
 
   /** see https://kubernetes.io/docs/reference/using-api/api-concepts/#semantics-for-watch */
@@ -64,5 +47,13 @@ public class ConfigNodeEvent extends BaseEvent {
       return true;
     }
     return false;
+  }
+
+  public CustomResource<? extends CommonSpec, CommonStatus> getOldResource() {
+    return oldResource;
+  }
+
+  public CustomResource<? extends CommonSpec, CommonStatus> getResource() {
+    return resource;
   }
 }
