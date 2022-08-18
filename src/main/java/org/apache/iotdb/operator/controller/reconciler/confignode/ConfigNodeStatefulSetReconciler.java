@@ -24,7 +24,6 @@ import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.ConfigNodeBuilder;
-import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.StatefulSetEvent;
 
 import io.fabric8.kubernetes.api.model.ObjectMeta;
@@ -52,8 +51,7 @@ public class ConfigNodeStatefulSetReconciler implements IReconciler {
   private final StatefulSetStatus status;
   private final StatefulSetSpec spec;
 
-  public ConfigNodeStatefulSetReconciler(BaseEvent baseEvent) {
-    StatefulSetEvent statefulSetEvent = (StatefulSetEvent) baseEvent;
+  public ConfigNodeStatefulSetReconciler(StatefulSetEvent statefulSetEvent) {
     metadata = statefulSetEvent.getStatefulSet().getMetadata();
     action = statefulSetEvent.getAction();
     spec = statefulSetEvent.getStatefulSet().getSpec();

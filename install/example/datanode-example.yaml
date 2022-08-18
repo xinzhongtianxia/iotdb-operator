@@ -25,8 +25,9 @@ metadata:
   labels:
     app: iotdb
 spec:
-  image: iotdb:latest
-  replicas: 3
+  mode: standalone
+  image: iotdb:standalone
+  replicas: 1
   podDistributeStrategy: preferred
   limits:
     cpu: 1
@@ -36,9 +37,8 @@ spec:
     limit: 1
   service:
     type: NodePort
-    nodePort: 30001
     externalTrafficPolicy: Local
-  iotdbDataNodeConfig:
+  iotdbConfig:
     dataNodeProperties:
-      test: test2222222tr
+      test: test23333tr
 

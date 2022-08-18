@@ -28,17 +28,14 @@ import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeStateful
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.StatefulSetEvent;
 
-import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.client.Watcher.Action;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.kubernetes.client.dsl.Informable;
 import io.fabric8.kubernetes.client.informers.ResourceEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,11 +49,6 @@ public class StatefulSetController implements IController {
   private final ExecutorService statefulSetExecutor = Executors.newSingleThreadExecutor();
 
   private void receiveStatefulSetEvent(StatefulSetEvent event) {
-    // filter events irrelevant to IoTDB
-    Map<String, String> labels = event.getStatefulSet().getMetadata().getLabels();
-    if (!labels.containsKey(CommonConstant.LABEL_KEY_MANAGED_BY)) {
-      return;
-    }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("received event :\n {}", event);
     } else {
@@ -88,7 +80,7 @@ public class StatefulSetController implements IController {
   public void startDispatch() {
     statefulSetExecutor.execute(
         () -> {
-          LOGGER.info("start dispatching ConfigNode-StatefulSet events...");
+          LOGGER.info("start dispatching StatefulSet events...");
           while (!Thread.interrupted()) {
             StatefulSetEvent event = null;
             try {
@@ -110,14 +102,29 @@ public class StatefulSetController implements IController {
 
   @Override
   public void startWatch() {
-    MixedOperation<StatefulSet, KubernetesResourceList<StatefulSet>, Resource<StatefulSet>>
-        resources = kubernetesClient.resources(StatefulSet.class);
+
+    Informable<StatefulSet> informable;
+
     String scope = IoTDBOperatorConfig.getInstance().getScope();
     if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
       String namespace = IoTDBOperatorConfig.getInstance().getNamespace();
-      resources.inNamespace(namespace);
+      informable =
+          kubernetesClient
+              .resources(StatefulSet.class)
+              .inNamespace(namespace)
+              .withLabel(
+                  CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
+    } else {
+      informable =
+          kubernetesClient
+              .resources(StatefulSet.class)
+              .inAnyNamespace()
+              .withLabel(
+                  CommonConstant.LABEL_KEY_MANAGED_BY, CommonConstant.LABEL_VALUE_MANAGED_BY);
     }
-    resources.inform(
+
+    LOGGER.info("start watch statefulset resources...");
+    informable.inform(
         new ResourceEventHandler<StatefulSet>() {
           @Override
           public void onAdd(StatefulSet obj) {

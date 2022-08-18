@@ -47,4 +47,20 @@ public class BaseEvent {
   public String getEventId() {
     return eventId;
   }
+
+  @Override
+  public String toString() {
+    return "BaseEvent{"
+        + "action="
+        + action
+        + ", kind="
+        + kind
+        + ", resourceVersion='"
+        + resourceVersion
+        + '\''
+        + ", eventId='"
+        + eventId
+        + '\''
+        + '}';
+  }
 }
