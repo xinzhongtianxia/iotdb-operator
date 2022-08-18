@@ -22,7 +22,8 @@ package org.apache.iotdb.operator.controller.reconciler.confignode;
 import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
-import org.apache.iotdb.operator.crd.CommonStatus;
+import org.apache.iotdb.operator.crd.ConfigNode;
+import org.apache.iotdb.operator.crd.ConfigNodeBuilder;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
@@ -44,28 +45,13 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
 
   private ConfigNodeConfig configNodeConfig = ConfigNodeConfig.getInstance();
 
-  private final CommonStatus oldStatus;
-  private final CommonStatus newStatus;
-
   public ConfigNodeUpdateReconciler(CustomResourceEvent event) {
     super(event.getResource().getMetadata(), Kind.CONFIG_NODE, event.getResource().getSpec());
-    newStatus = event.getResource().getStatus();
-    oldStatus = event.getOldResource().getStatus();
   }
 
   @Override
   public ReconcilerType getType() {
     return ReconcilerType.CONFIG_NODE_UPDATE;
-  }
-
-  @Override
-  protected Object getNewStatus() {
-    return newStatus;
-  }
-
-  @Override
-  protected Object getOldStatus() {
-    return oldStatus;
   }
 
   @Override
@@ -146,5 +132,36 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
     configMap
         .getData()
         .put(CommonConstant.CONFIG_NODE_PROPERTY_FILE_NAME, newConfigNodePropertyFileContent);
+  }
+
+  @Override
+  protected void patchPartitionToAnnotations() {
+
+    int rollingUpdatePartition = newSpec.getReplicas() - 1;
+    ConfigNode configNode =
+        kubernetesClient
+            .resources(ConfigNode.class)
+            .inNamespace(meta.getNamespace())
+            .withName(meta.getName())
+            .require();
+    String currentPartition =
+        configNode
+            .getMetadata()
+            .getAnnotations()
+            .getOrDefault(CommonConstant.ANNOTATION_KEY_PARTITION, "0");
+
+    if (Integer.parseInt(currentPartition) != rollingUpdatePartition) {
+      configNode
+          .getMetadata()
+          .getAnnotations()
+          .put(CommonConstant.ANNOTATION_KEY_PARTITION, String.valueOf(rollingUpdatePartition));
+      ConfigNode configNodeWithOnlyAnnotations =
+          new ConfigNodeBuilder().withMetadata(configNode.getMetadata()).build();
+
+      kubernetesClient
+          .resource(configNodeWithOnlyAnnotations)
+          .inNamespace(meta.getNamespace())
+          .patch();
+    }
   }
 }

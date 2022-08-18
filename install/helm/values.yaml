@@ -39,5 +39,3 @@ imagePullSecret: ""
 cpu: 2
 # The unit of memory is Mb
 memory: 4096
-
-# todo add services for metrics and probes, etc.
