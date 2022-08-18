@@ -29,24 +29,21 @@ import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.EnvVar;
-import io.fabric8.kubernetes.api.model.LocalObjectReference;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.Quantity;
-import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.apps.StatefulSet;
 import io.fabric8.kubernetes.api.model.apps.StatefulSetSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public abstract class UpdateReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UpdateReconciler.class);
 
-  private final ObjectMeta meta;
+  protected final ObjectMeta meta;
   protected final String subResourceName;
   protected final CommonSpec newSpec;
 
@@ -92,8 +89,6 @@ public abstract class UpdateReconciler implements IReconciler {
   }
 
   protected void updateStatefulSet(ConfigMap configMap) {
-    // todo consider rolling-update with pause and resume
-
     StatefulSet statefulSet =
         kubernetesClient
             .apps()
@@ -105,70 +100,48 @@ public abstract class UpdateReconciler implements IReconciler {
     if (needUpdateStatefulSet(configMap, statefulSet)) {
       LOGGER.info("begin updating statefulset : {}:{}", meta.getNamespace(), subResourceName);
 
-      internalUpdateStatefulSet(configMap, statefulSet);
+      // set rolling-update-partition to replica-1 for safety
+      patchPartitionToAnnotations();
+      int rollingUpdatePartition = newSpec.getReplicas() - 1;
+      statefulSet
+          .getSpec()
+          .getUpdateStrategy()
+          .getRollingUpdate()
+          .setPartition(rollingUpdatePartition);
+
       kubernetesClient
           .apps()
           .statefulSets()
           .inNamespace(meta.getNamespace())
           .resource(statefulSet)
-          .lockResourceVersion(statefulSet.getMetadata().getResourceVersion())
-          .replace();
+          .patch();
 
       LOGGER.info("end updating statefulset : {}:{}", meta.getNamespace(), subResourceName);
+    } else if (needPatchPartition(statefulSet)) {
+      kubernetesClient
+          .apps()
+          .statefulSets()
+          .inNamespace(meta.getNamespace())
+          .resource(statefulSet)
+          .patch();
     } else {
-      LOGGER.info("no need to update statefulset {}:{}", meta.getNamespace(), subResourceName);
-      // since we actually received modification event but there is no need to do any updating work,
-      // then
-      // the event must be a status-changed event or synthetic event.
-      LOGGER.info("old status : {} \n new Status : {}", getOldStatus(), getNewStatus());
+      LOGGER.warn("no need to update statefulset newSpec = {}", newSpec);
     }
   }
 
-  protected abstract Object getNewStatus();
-
-  protected abstract Object getOldStatus();
-
-  protected void internalUpdateStatefulSet(ConfigMap configMap, StatefulSet statefulSet) {
-    int replicas = newSpec.getReplicas();
-    String image = newSpec.getImage();
-    String imageSecret = newSpec.getImagePullSecret();
-
-    // update replicas
-    statefulSet.getSpec().setReplicas(replicas);
-
-    // update image
-    statefulSet.getSpec().getTemplate().getSpec().getContainers().get(0).setImage(image);
-
-    // update image pull secrets
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getSpec()
-        .setImagePullSecrets(Collections.singletonList(new LocalObjectReference(imageSecret)));
-
-    // update limits
-    Limits limits = newSpec.getLimits();
-    ResourceRequirements resourceRequirements = ReconcilerUtils.createResourceLimits(limits);
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getSpec()
-        .getContainers()
-        // there is only one container in the pod
-        .get(0)
-        .setResources(resourceRequirements);
-
-    // update env
-    updateEnvs(statefulSet, limits);
-
-    // update configMapSha256
-    String cmSha = DigestUtils.sha(configMap.getData().toString());
-    statefulSet
-        .getSpec()
-        .getTemplate()
-        .getMetadata()
-        .getAnnotations()
-        .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
+  private boolean needPatchPartition(StatefulSet statefulSet) {
+    String newPartition = meta.getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
+    String currentPartition =
+        statefulSet.getMetadata().getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
+    if (!newPartition.equals(currentPartition)) {
+      LOGGER.info("rolling update partition changed from {} to {}", currentPartition, newPartition);
+      statefulSet
+          .getMetadata()
+          .getAnnotations()
+          .put(CommonConstant.ANNOTATION_KEY_PARTITION, newPartition);
+      return true;
+    }
+    return false;
   }
 
   private void updateEnvs(StatefulSet statefulSet, Limits limits) {
@@ -196,12 +169,28 @@ public abstract class UpdateReconciler implements IReconciler {
     boolean needUpdate = false;
 
     StatefulSetSpec statefulSetSpec = statefulSet.getSpec();
+
+    // images
     String oldImage = statefulSetSpec.getTemplate().getSpec().getContainers().get(0).getImage();
     if (!newSpec.getImage().equals(oldImage)) {
+      statefulSetSpec.getTemplate().getSpec().getContainers().get(0).setImage(newSpec.getImage());
       needUpdate = true;
       LOGGER.info("image changed, old : {}, new : {}", oldImage, newSpec.getImage());
     }
 
+    // replicas
+    // since replicas has been validated when the event came in, here we could treat it as a
+    // legal param.
+    if (newSpec.getReplicas() != statefulSetSpec.getReplicas()) {
+      statefulSetSpec.setReplicas(newSpec.getReplicas());
+      needUpdate = true;
+      LOGGER.info(
+          "replicas changed, old : {}, new : {}",
+          newSpec.getReplicas(),
+          statefulSetSpec.getReplicas());
+    }
+
+    // resource limits
     Map<String, Quantity> oldLimits =
         statefulSet
             .getSpec()
@@ -218,18 +207,21 @@ public abstract class UpdateReconciler implements IReconciler {
             String.valueOf(newLimits.getMemory()) + CommonConstant.RESOURCE_STORAGE_UNIT_M);
     if (!oldLimits.get(CommonConstant.RESOURCE_CPU).equals(newCpuQuantity)
         || !oldLimits.get(CommonConstant.RESOURCE_MEMORY).equals(newMemQuantity)) {
+      statefulSet
+          .getSpec()
+          .getTemplate()
+          .getSpec()
+          .getContainers()
+          .get(0)
+          .setResources(ReconcilerUtils.createResourceLimits(newLimits));
+
+      updateEnvs(statefulSet, newLimits);
+
       needUpdate = true;
       LOGGER.info("limits changed, old : {}, new : {}", oldLimits, newSpec.getLimits());
     }
 
-    if (newSpec.getReplicas() != statefulSetSpec.getReplicas()) {
-      needUpdate = true;
-      LOGGER.info(
-          "replica changed, old : {}, new : {}",
-          statefulSetSpec.getReplicas(),
-          newSpec.getReplicas());
-    }
-
+    // configmap sha
     String newCmSha = DigestUtils.sha(configMap.getData().toString());
     String oldCmSha =
         statefulSet
@@ -239,11 +231,42 @@ public abstract class UpdateReconciler implements IReconciler {
             .getAnnotations()
             .get(CommonConstant.ANNOTATION_KEY_SHA);
     if (!newCmSha.equals(oldCmSha)) {
+      statefulSet
+          .getSpec()
+          .getTemplate()
+          .getMetadata()
+          .getAnnotations()
+          .put(CommonConstant.ANNOTATION_KEY_SHA, newCmSha);
       LOGGER.info("configmap updated, so we also need to update the statefulset");
       needUpdate = true;
     }
 
+    // rolling update partition
+    int partition = statefulSet.getSpec().getUpdateStrategy().getRollingUpdate().getPartition();
+    String newPartition = meta.getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
+    if (newPartition != null && Integer.parseInt(newPartition) != partition) {
+      statefulSet
+          .getSpec()
+          .getUpdateStrategy()
+          .getRollingUpdate()
+          .setPartition(Integer.valueOf(newPartition));
+    }
+
     // todo storage vertical scale
+
+    // if statefulset need to be update, do not forget to update the image pull secret.
+    if (needUpdate) {
+      if (!newSpec
+          .getImagePullSecret()
+          .equals(statefulSetSpec.getTemplate().getSpec().getImagePullSecrets().get(0).getName())) {
+        statefulSetSpec
+            .getTemplate()
+            .getSpec()
+            .getImagePullSecrets()
+            .get(0)
+            .setName(newSpec.getImagePullSecret());
+      }
+    }
 
     return needUpdate;
   }
@@ -256,4 +279,7 @@ public abstract class UpdateReconciler implements IReconciler {
    * @see #needUpdateStatefulSet
    */
   protected abstract boolean needUpdateConfigMap(ConfigMap configMap) throws IOException;
+
+  /** patch rolling update partition to annotations */
+  protected abstract void patchPartitionToAnnotations();
 }
