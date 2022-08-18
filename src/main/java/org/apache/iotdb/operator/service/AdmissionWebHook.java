@@ -17,7 +17,7 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator;
+package org.apache.iotdb.operator.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +34,7 @@ import reactor.netty.http.server.HttpServer;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.Security;
@@ -52,8 +53,10 @@ public class AdmissionWebHook {
   private AdmissionWebHook() {}
 
   public void start() throws IOException {
-    InputStream cert = getClass().getResourceAsStream("/server.pem");
-    InputStream key = getClass().getResourceAsStream("/server-key.pem");
+    InputStream cert =
+        getClass().getResourceAsStream(File.separator + "conf" + File.separator + "server.pem");
+    InputStream key =
+        getClass().getResourceAsStream(File.separator + "conf" + File.separator + "server-key.pem");
 
     Security.addProvider(new BouncyCastleProvider());
     DisposableServer server =

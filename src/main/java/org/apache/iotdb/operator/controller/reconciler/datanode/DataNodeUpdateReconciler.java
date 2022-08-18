@@ -6,8 +6,7 @@ import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.DataNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
-import org.apache.iotdb.operator.event.DataNodeEvent;
+import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import org.slf4j.Logger;
@@ -29,15 +28,20 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
   private final CommonStatus oldStatus;
   private final CommonStatus newStatus;
 
-  public DataNodeUpdateReconciler(BaseEvent event) {
-    super(
-        ((DataNodeEvent) event).getResource().getMetadata(),
-        Kind.DATA_NODE,
-        ((DataNodeEvent) event).getResource().getSpec());
-    oldStatus = ((DataNodeEvent) event).getOldResource().getStatus();
-    newStatus = ((DataNodeEvent) event).getResource().getStatus();
+  public DataNodeUpdateReconciler(CustomResourceEvent event) {
+    super(event.getResource().getMetadata(), Kind.DATA_NODE, event.getResource().getSpec());
+    newStatus = event.getResource().getStatus();
+    oldStatus = event.getOldResource().getStatus();
+
+    // todo there should be an admission-validation-web-hook to prevent changing immutable configs
+    // replace below hard-code by web hook
+    ((DataNodeSpec) newSpec).setMode(((DataNodeSpec) event.getOldResource().getSpec()).getMode());
     if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
       newSpec.setReplicas(1);
+    } else {
+      if (newSpec.getReplicas() < 3) {
+        newSpec.setReplicas(3);
+      }
     }
   }
 
@@ -109,7 +113,11 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
     Map<String, Object> newProperties =
         ((DataNodeSpec) newSpec).getIotdbConfig().getDataNodeProperties();
 
-    if (newProperties.size() != properties.size() - dataNodeConfig.getDefaultProperties().size()) {
+    int oldPropertySize = properties.size() - dataNodeConfig.getDefaultProperties().size();
+    if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
+      oldPropertySize += 1;
+    }
+    if (newProperties.size() != oldPropertySize) {
       needUpdate = true;
     } else {
       for (Entry<Object, Object> entry : properties.entrySet()) {

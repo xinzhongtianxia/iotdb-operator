@@ -59,9 +59,12 @@ enable_metrics() {
 }
 
 start_config_node() {
-  if [ "$IOTDB_DATA_NODE_MODE" == "standalone" ]; then
+  echo "IOTDB_DATA_NODE_MODE=$IOTDB_DATA_NODE_MODE"
+  if [ "$IOTDB_DATA_NODE_MODE" = 'standalone' ]; then
+    echo "=========="
     exec "$DATA_NODE_START_SERVER_FILE"
   else
+    echo "-------------"
     exec "$DATA_NODE_START_CLUSTER_FILE"
   fi
 }

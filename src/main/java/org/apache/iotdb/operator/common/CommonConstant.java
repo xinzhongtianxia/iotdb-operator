@@ -46,6 +46,7 @@ public class CommonConstant {
   public static final String IMAGE_PULL_POLICY_IF_NOT_PRESENT = "IfNotPresent";
 
   public static final String LABEL_KEY_MANAGED_BY = "app-managed-by";
+  public static final String LABEL_VALUE_MANAGED_BY = "iotdb";
   public static final String ANNOTATION_KEY_SHA = "cm-sha";
   public static final String LABEL_KEY_APP_KIND = "app-kind";
   public static final String LABEL_KEY_APP_NAME = "app-name";

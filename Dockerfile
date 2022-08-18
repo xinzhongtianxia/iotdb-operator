@@ -23,15 +23,17 @@ FROM openjdk:11-jre-slim
 
 ADD target/apache-iotdb-operator-*.zip /
 
-RUN apt update \
-  && apt install vim dos2unix unzip curl -y
+RUN sed -i s@/deb.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list \
+    && apt-get clean \
+    && apt-get update \
+  && apt-get install vim dos2unix unzip curl -y
 RUN unzip /apache-iotdb-operator-*.zip -d /apache-iotdb-operator \
   && rm /apache-iotdb-operator-*.zip \
   && ls \
   && mv /apache-iotdb-operator /iotdb-operator \
-  && apt remove unzip -y \
-  && apt autoremove -y \
-  && apt purge --auto-remove -y \
-  && apt clean -y
+  && apt-get remove unzip -y \
+  && apt-get autoremove -y \
+  && apt-get purge --auto-remove -y \
+  && apt-get clean -y
 RUN dos2unix /iotdb-operator/sbin/start-operator.sh
 ENTRYPOINT ["/iotdb-operator/sbin/start-operator.sh"]

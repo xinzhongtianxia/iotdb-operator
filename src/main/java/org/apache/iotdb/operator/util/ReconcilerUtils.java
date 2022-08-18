@@ -29,7 +29,7 @@ import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
 import io.fabric8.kubernetes.api.model.ResourceRequirementsBuilder;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +66,9 @@ public class ReconcilerUtils {
             .withName(EnvKey.IOTDB_MAX_DIRECT_MEMORY_SIZE.name())
             .withValue(maxDirectMemorySize + "M")
             .build();
-
-    return Arrays.asList(heapMemoryEnv, directMemoryEnv);
+    List<EnvVar> envVars = new ArrayList<>();
+    envVars.add(heapMemoryEnv);
+    envVars.add(directMemoryEnv);
+    return envVars;
   }
 }

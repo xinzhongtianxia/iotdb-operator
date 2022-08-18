@@ -24,7 +24,7 @@ scope: "cluster"
 
 # The Kubernetes namespace in which the IoTDB Operator will be installed.
 # We strongly recommend that you should always set the namespace param, if not, the default namespace will be used.
-namespace: "iotdb"
+namespace: "a"
 
 # The iotdb-operator image and its version
 image: "iotdb-operator:latest"

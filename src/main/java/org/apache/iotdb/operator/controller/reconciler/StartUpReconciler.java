@@ -131,7 +131,7 @@ public abstract class StartUpReconciler implements IReconciler {
         .configMaps()
         .inNamespace(metadata.getNamespace())
         .resource(configMap)
-        .create();
+        .createOrReplace();
   }
 
   /** Common labels that need to be attached to iotdb resources. */
@@ -146,7 +146,7 @@ public abstract class StartUpReconciler implements IReconciler {
 
     // Here we attach an annotation to statefulset's podTemplate to let it triggers a rolling update
     // for the pods when there is only data changed in ConfigMap.
-    String cmSha = DigestUtils.sha(configMap.toString());
+    String cmSha = DigestUtils.sha(configMap.getData().toString());
     statefulSetSpec
         .getTemplate()
         .getMetadata()
@@ -161,7 +161,7 @@ public abstract class StartUpReconciler implements IReconciler {
         .statefulSets()
         .inNamespace(metadata.getNamespace())
         .resource(statefulSet)
-        .create();
+        .createOrReplace();
   }
 
   private StatefulSetSpec createStatefulsetSpec() {
