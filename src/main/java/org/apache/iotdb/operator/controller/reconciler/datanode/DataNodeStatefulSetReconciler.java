@@ -61,7 +61,7 @@ public class DataNodeStatefulSetReconciler implements IReconciler {
       int available = status.getAvailableReplicas();
       int desired = spec.getReplicas();
 
-      STATE state = available == desired ? STATE.READY : STATE.RECONCILING;
+      STATE state = available == desired ? STATE.READY : STATE.PENDING;
 
       String stsName = metadata.getName();
       String dataNodeName = stsName.substring(0, stsName.lastIndexOf("-"));

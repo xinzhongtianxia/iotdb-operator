@@ -100,14 +100,16 @@ public abstract class UpdateReconciler implements IReconciler {
     if (needUpdateStatefulSet(configMap, statefulSet)) {
       LOGGER.info("begin updating statefulset : {}:{}", meta.getNamespace(), subResourceName);
 
-      // set rolling-update-partition to replica-1 for safety
-      patchPartitionToAnnotations();
-      int rollingUpdatePartition = newSpec.getReplicas() - 1;
-      statefulSet
-          .getSpec()
-          .getUpdateStrategy()
-          .getRollingUpdate()
-          .setPartition(rollingUpdatePartition);
+      if (newSpec.isEnableSafeDeploy()) {
+        // set rolling-update-partition to replica-1 for safety
+        patchPartitionToAnnotations();
+        int rollingUpdatePartition = newSpec.getReplicas() - 1;
+        statefulSet
+            .getSpec()
+            .getUpdateStrategy()
+            .getRollingUpdate()
+            .setPartition(rollingUpdatePartition);
+      }
 
       kubernetesClient
           .apps()
