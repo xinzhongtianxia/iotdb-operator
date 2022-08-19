@@ -43,6 +43,13 @@ spec:
             spec:
               type: object
               properties:
+                enableSafeDeploy:
+                  type: boolean
+                  default: true
+                  description: if true, a 'partition=replicas-1' will be added to annotations, which has
+                  the same meaning with 'StatefulSet.Spec.RollingUpdate.Partition'.
+                  See 'https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/stateful-set-v1/#StatefulSetSpec'.
+                  Anyway, you can always set the partition in annotations manually.
                 image:
                   type: string
                   pattern: .+:.+
