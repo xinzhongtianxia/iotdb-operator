@@ -24,8 +24,7 @@ package org.apache.iotdb.operator.common;
  * some conditions.
  */
 public enum STATE {
-  // The operator is reconciling iotdb, other reconcilers should wait until READY or FAILED.
-  RECONCILING,
+  PENDING,
   READY,
   FAILED
 }

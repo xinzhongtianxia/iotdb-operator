@@ -24,6 +24,7 @@ public class CommonSpec {
   private String image;
   private String imagePullSecret;
   private int replicas;
+  private boolean enableSafeDeploy;
   private String podDistributeStrategy = "required";
   private Limits limits;
   private Storage storage;
@@ -58,6 +59,14 @@ public class CommonSpec {
 
   public void setPodDistributeStrategy(String podDistributeStrategy) {
     this.podDistributeStrategy = podDistributeStrategy;
+  }
+
+  public boolean isEnableSafeDeploy() {
+    return enableSafeDeploy;
+  }
+
+  public void setEnableSafeDeploy(boolean enableSafeDeploy) {
+    this.enableSafeDeploy = enableSafeDeploy;
   }
 
   public Limits getLimits() {
