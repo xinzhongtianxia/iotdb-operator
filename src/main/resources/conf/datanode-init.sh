@@ -58,7 +58,7 @@ enable_metrics() {
   sed -i "s/^enableMetric.*/enableMetric: true/" $DATA_NODE_METRIC_FILE
 }
 
-start_config_node() {
+start_data_node() {
   echo "IOTDB_DATA_NODE_MODE=$IOTDB_DATA_NODE_MODE"
   if [ "$IOTDB_DATA_NODE_MODE" = 'standalone' ]; then
     echo "=========="
@@ -72,5 +72,4 @@ start_config_node() {
 modify_properties
 modify_JVM_options
 enable_metrics
-start_config_node
-
+start_data_node

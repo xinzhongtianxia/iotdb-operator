@@ -4,12 +4,12 @@ import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.DataNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.UpdateReconciler;
 import org.apache.iotdb.operator.crd.DataNode;
-import org.apache.iotdb.operator.crd.DataNodeBuilder;
 import org.apache.iotdb.operator.crd.DataNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,9 +73,9 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
     newProperties.forEach(
         (k, v) -> {
           if (properties.containsKey(k)) {
-            properties.replace(k, v);
+            properties.replace(k, String.valueOf(v));
           } else {
-            properties.setProperty(k, (String) v);
+            properties.setProperty(k, String.valueOf(v));
           }
         });
 
@@ -104,8 +104,6 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
   protected boolean needUpdateConfigMap(ConfigMap configMap) throws IOException {
     String dataNodePropertyFileContent =
         configMap.getData().get(CommonConstant.DATA_NODE_PROPERTY_FILE_NAME);
-    LOGGER.info("old datanode-properties: \n {}", dataNodePropertyFileContent);
-
     Properties properties = new Properties();
     properties.load(new StringReader(dataNodePropertyFileContent));
 
@@ -145,9 +143,8 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected void patchPartitionToAnnotations() {
+  protected void patchPartitionToAnnotations(int rollingUpdatePartition) {
 
-    int rollingUpdatePartition = newSpec.getReplicas() - 1;
     DataNode dataNode =
         kubernetesClient
             .resources(DataNode.class)
@@ -165,13 +162,16 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
           .getMetadata()
           .getAnnotations()
           .put(CommonConstant.ANNOTATION_KEY_PARTITION, String.valueOf(rollingUpdatePartition));
-      DataNode dataNodeWithOnlyAnnotations =
-          new DataNodeBuilder().withMetadata(dataNode.getMetadata()).build();
+      kubernetesClient.resource(dataNode).inNamespace(meta.getNamespace()).replace();
 
-      kubernetesClient
-          .resource(dataNodeWithOnlyAnnotations)
-          .inNamespace(meta.getNamespace())
-          .patch();
+      OutputEventUtils.sendEvent(
+          Kind.DATA_NODE,
+          OutputEventUtils.EVENT_TYPE_NORMAL,
+          "Update Partition",
+          meta,
+          "update DataNode's partition to " + rollingUpdatePartition,
+          "Updated",
+          Kind.DATA_NODE.getName());
     }
   }
 }

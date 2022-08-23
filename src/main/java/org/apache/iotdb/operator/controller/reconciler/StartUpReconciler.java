@@ -23,6 +23,7 @@ import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.util.DigestUtils;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import io.fabric8.kubernetes.api.model.Affinity;
@@ -127,6 +128,16 @@ public abstract class StartUpReconciler implements IReconciler {
             .endMetadata()
             .withData(configFiles)
             .build();
+
+    OutputEventUtils.sendEvent(
+        kind,
+        OutputEventUtils.EVENT_TYPE_NORMAL,
+        "CreateConfigMap",
+        metadata,
+        "Successfully created ConfigMap " + subResourceName,
+        "Created",
+        Kind.CONFIG_MAP.getName());
+
     return kubernetesClient
         .configMaps()
         .inNamespace(metadata.getNamespace())
@@ -137,9 +148,9 @@ public abstract class StartUpReconciler implements IReconciler {
   /** Common labels that need to be attached to iotdb resources. */
   protected abstract Map<String, String> getLabels();
 
-  protected StatefulSet createStatefulSet(ConfigMap configMap) {
+  protected void createStatefulSet(ConfigMap configMap) {
     // metadata
-    ObjectMeta metadata = createMetadata();
+    ObjectMeta statefulSetMetadata = createMetadata();
 
     // specific
     StatefulSetSpec statefulSetSpec = createStatefulsetSpec();
@@ -154,9 +165,18 @@ public abstract class StartUpReconciler implements IReconciler {
         .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
 
     StatefulSet statefulSet =
-        new StatefulSetBuilder().withMetadata(metadata).withSpec(statefulSetSpec).build();
+        new StatefulSetBuilder().withMetadata(statefulSetMetadata).withSpec(statefulSetSpec).build();
 
-    return kubernetesClient
+    OutputEventUtils.sendEvent(
+        kind,
+        OutputEventUtils.EVENT_TYPE_NORMAL,
+        "CreateStatefulSet",
+        metadata,
+        "Successfully created CreateStatefulSet " + subResourceName,
+        "Created",
+        Kind.STATEFUL_SET.getName());
+
+    kubernetesClient
         .apps()
         .statefulSets()
         .inNamespace(metadata.getNamespace())

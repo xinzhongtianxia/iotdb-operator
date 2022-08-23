@@ -22,7 +22,6 @@ package org.apache.iotdb.operator;
 import org.apache.iotdb.operator.controller.ConfigNodeController;
 import org.apache.iotdb.operator.controller.DataNodeController;
 import org.apache.iotdb.operator.controller.IController;
-import org.apache.iotdb.operator.controller.KubernetesEventController;
 import org.apache.iotdb.operator.controller.StatefulSetController;
 
 import java.util.Arrays;
@@ -32,7 +31,6 @@ public class Watcher {
 
   private final List<IController> controllers =
       Arrays.asList(
-          new KubernetesEventController(),
           new StatefulSetController(),
           new ConfigNodeController(),
           new DataNodeController());

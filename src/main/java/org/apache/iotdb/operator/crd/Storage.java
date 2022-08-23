@@ -23,7 +23,7 @@ import java.util.Objects;
 
 public class Storage {
   private String storageClass;
-  private String limit;
+  private int limit;
 
   public String getStorageClass() {
     return storageClass;
@@ -33,11 +33,11 @@ public class Storage {
     this.storageClass = storageClass;
   }
 
-  public String getLimit() {
+  public int getLimit() {
     return limit;
   }
 
-  public void setLimit(String limit) {
+  public void setLimit(int limit) {
     this.limit = limit;
   }
 
@@ -50,11 +50,19 @@ public class Storage {
       return false;
     }
     Storage storage = (Storage) o;
-    return storageClass.equals(storage.storageClass) && limit.equals(storage.limit);
+    return storageClass.equals(storage.storageClass) && limit == storage.limit;
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(storageClass, limit);
+  }
+
+  @Override
+  public String toString() {
+    return "Storage{" +
+        "storageClass='" + storageClass + '\'' +
+        ", limit=" + limit +
+        '}';
   }
 }
