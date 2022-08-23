@@ -19,6 +19,7 @@
 
 package org.apache.iotdb.operator.controller.reconciler.datanode;
 
+import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.common.STATE;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;

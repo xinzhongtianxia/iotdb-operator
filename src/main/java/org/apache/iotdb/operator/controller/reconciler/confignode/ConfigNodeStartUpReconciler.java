@@ -23,7 +23,9 @@ import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.config.ConfigNodeConfig;
 import org.apache.iotdb.operator.controller.reconciler.StartUpReconciler;
 import org.apache.iotdb.operator.crd.ConfigNodeSpec;
+import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import org.apache.commons.io.IOUtils;
@@ -271,12 +273,25 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         .services()
         .inNamespace(metadata.getNamespace())
         .resource(internalService)
-        .create();
+        .createOrReplace();
     kubernetesClient
         .services()
         .inNamespace(metadata.getNamespace())
         .resource(externalService)
-        .create();
+        .createOrReplace();
+
+    OutputEventUtils.sendEvent(
+        kind,
+        OutputEventUtils.EVENT_TYPE_NORMAL,
+        "CreateService",
+        metadata,
+        "Successfully created Service "
+            + subResourceName
+            + " and "
+            + subResourceName
+            + CommonConstant.SERVICE_SUFFIX_EXTERNAL,
+        "Created",
+        Kind.SERVICE.getName());
   }
 
   @Override
