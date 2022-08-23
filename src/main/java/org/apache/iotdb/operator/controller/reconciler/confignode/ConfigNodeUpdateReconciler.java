@@ -135,9 +135,8 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
   }
 
   @Override
-  protected void patchPartitionToAnnotations() {
+  protected void patchPartitionToAnnotations(int rollingUpdatePartition) {
 
-    int rollingUpdatePartition = newSpec.getReplicas() - 1;
     ConfigNode configNode =
         kubernetesClient
             .resources(ConfigNode.class)
@@ -161,7 +160,7 @@ public class ConfigNodeUpdateReconciler extends UpdateReconciler {
       kubernetesClient
           .resource(configNodeWithOnlyAnnotations)
           .inNamespace(meta.getNamespace())
-          .patch();
+          .replace();
     }
   }
 }

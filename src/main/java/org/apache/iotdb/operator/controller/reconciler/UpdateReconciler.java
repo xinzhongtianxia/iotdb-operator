@@ -25,6 +25,7 @@ import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.crd.Limits;
 import org.apache.iotdb.operator.util.DigestUtils;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 import org.apache.iotdb.operator.util.ReconcilerUtils;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
@@ -77,7 +78,14 @@ public abstract class UpdateReconciler implements IReconciler {
           .resource(configMap)
           .lockResourceVersion(configMap.getMetadata().getResourceVersion())
           .replace();
-
+      OutputEventUtils.sendEvent(
+          Kind.DATA_NODE,
+          OutputEventUtils.EVENT_TYPE_NORMAL,
+          "Update ConfigMap",
+          meta,
+          "Successfully updated ConfigMap",
+          "Updated",
+          Kind.CONFIG_MAP.getName());
       LOGGER.info("end updating configmap : {}:{}", meta.getNamespace(), subResourceName);
     } else {
       LOGGER.info(
@@ -102,8 +110,9 @@ public abstract class UpdateReconciler implements IReconciler {
 
       if (newSpec.isEnableSafeDeploy()) {
         // set rolling-update-partition to replica-1 for safety
-        patchPartitionToAnnotations();
         int rollingUpdatePartition = newSpec.getReplicas() - 1;
+        LOGGER.info("set rolling-update-partition to {}", rollingUpdatePartition);
+        patchPartitionToAnnotations(rollingUpdatePartition);
         statefulSet
             .getSpec()
             .getUpdateStrategy()
@@ -116,7 +125,16 @@ public abstract class UpdateReconciler implements IReconciler {
           .statefulSets()
           .inNamespace(meta.getNamespace())
           .resource(statefulSet)
-          .patch();
+          .replace();
+
+      OutputEventUtils.sendEvent(
+          Kind.DATA_NODE,
+          OutputEventUtils.EVENT_TYPE_NORMAL,
+          "Update StatefulSet",
+          meta,
+          "Successfully updated StatefulSet",
+          "Updated",
+          Kind.STATEFUL_SET.getName());
 
       LOGGER.info("end updating statefulset : {}:{}", meta.getNamespace(), subResourceName);
     } else if (needPatchPartition(statefulSet)) {
@@ -125,22 +143,32 @@ public abstract class UpdateReconciler implements IReconciler {
           .statefulSets()
           .inNamespace(meta.getNamespace())
           .resource(statefulSet)
-          .patch();
+          .replace();
+      OutputEventUtils.sendEvent(
+          Kind.DATA_NODE,
+          OutputEventUtils.EVENT_TYPE_NORMAL,
+          "Update StatefulSet",
+          meta,
+          "Successfully updated StatefulSet's partition",
+          "Updated",
+          Kind.STATEFUL_SET.getName());
     } else {
       LOGGER.warn("no need to update statefulset newSpec = {}", newSpec);
     }
   }
 
   private boolean needPatchPartition(StatefulSet statefulSet) {
-    String newPartition = meta.getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
-    String currentPartition =
-        statefulSet.getMetadata().getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
-    if (!newPartition.equals(currentPartition)) {
+    String newPartition =
+        meta.getAnnotations().getOrDefault(CommonConstant.ANNOTATION_KEY_PARTITION, "0");
+    int currentPartition =
+        statefulSet.getSpec().getUpdateStrategy().getRollingUpdate().getPartition();
+    if (currentPartition != Integer.parseInt(newPartition)) {
       LOGGER.info("rolling update partition changed from {} to {}", currentPartition, newPartition);
       statefulSet
-          .getMetadata()
-          .getAnnotations()
-          .put(CommonConstant.ANNOTATION_KEY_PARTITION, newPartition);
+          .getSpec()
+          .getUpdateStrategy()
+          .getRollingUpdate()
+          .setPartition(Integer.valueOf(newPartition));
       return true;
     }
     return false;
@@ -243,24 +271,20 @@ public abstract class UpdateReconciler implements IReconciler {
       needUpdate = true;
     }
 
-    // rolling update partition
-    int partition = statefulSet.getSpec().getUpdateStrategy().getRollingUpdate().getPartition();
-    String newPartition = meta.getAnnotations().get(CommonConstant.ANNOTATION_KEY_PARTITION);
-    if (newPartition != null && Integer.parseInt(newPartition) != partition) {
-      statefulSet
-          .getSpec()
-          .getUpdateStrategy()
-          .getRollingUpdate()
-          .setPartition(Integer.valueOf(newPartition));
-    }
-
     // todo storage vertical scale
 
     // if statefulset need to be update, do not forget to update the image pull secret.
     if (needUpdate) {
-      if (!newSpec
-          .getImagePullSecret()
-          .equals(statefulSetSpec.getTemplate().getSpec().getImagePullSecrets().get(0).getName())) {
+      int oldImagePullSecretSize =
+          statefulSetSpec.getTemplate().getSpec().getImagePullSecrets().size();
+      if (oldImagePullSecretSize > 0
+          && !statefulSetSpec
+              .getTemplate()
+              .getSpec()
+              .getImagePullSecrets()
+              .get(0)
+              .getName()
+              .equals(newSpec.getImagePullSecret())) {
         statefulSetSpec
             .getTemplate()
             .getSpec()
@@ -282,6 +306,10 @@ public abstract class UpdateReconciler implements IReconciler {
    */
   protected abstract boolean needUpdateConfigMap(ConfigMap configMap) throws IOException;
 
-  /** patch rolling update partition to annotations */
-  protected abstract void patchPartitionToAnnotations();
+  /**
+   * patch rolling update partition to annotations
+   *
+   * @param rollingUpdatePartition
+   */
+  protected abstract void patchPartitionToAnnotations(int rollingUpdatePartition);
 }
