@@ -24,7 +24,9 @@ public enum Kind {
   CONFIG_NODE("ConfigNode"),
   DATA_NODE("DataNode"),
   EVENT("Event"),
-  STATEFUL_SET("StatefulSet");
+  STATEFUL_SET("StatefulSet"),
+  SERVICE("Service"),
+  CONFIG_MAP("ConfigMap");
 
   private String name;
 

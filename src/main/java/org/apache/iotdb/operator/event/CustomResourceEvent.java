@@ -36,7 +36,7 @@ public class CustomResourceEvent extends BaseEvent {
       Kind kind,
       CustomResource<? extends CommonSpec, CommonStatus> resource,
       CustomResource<? extends CommonSpec, CommonStatus> oldResource) {
-    super(action, kind, resource.getVersion());
+    super(action, kind, resource.getMetadata().getResourceVersion());
     this.resource = resource;
     this.oldResource = oldResource;
   }
@@ -55,5 +55,25 @@ public class CustomResourceEvent extends BaseEvent {
 
   public CustomResource<? extends CommonSpec, CommonStatus> getResource() {
     return resource;
+  }
+
+  @Override
+  public String toString() {
+    return "CustomResourceEvent{"
+        + "oldResource="
+        + oldResource
+        + ", resource="
+        + resource
+        + ", action="
+        + action
+        + ", kind="
+        + kind
+        + ", resourceVersion='"
+        + resourceVersion
+        + '\''
+        + ", eventId='"
+        + eventId
+        + '\''
+        + '}';
   }
 }

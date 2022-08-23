@@ -80,6 +80,7 @@ public abstract class AbstractCustomResourceController implements IController {
                     (CustomResource<? extends CommonSpec, CommonStatus>) obj,
                     null);
             if (!event.isSyntheticAdded()) {
+              LOGGER.debug("received ADDED event : {}", event);
               resourceEvents.add(event);
             }
           }
@@ -94,6 +95,7 @@ public abstract class AbstractCustomResourceController implements IController {
                     kind,
                     (CustomResource<? extends CommonSpec, CommonStatus>) newObj,
                     (CustomResource<? extends CommonSpec, CommonStatus>) oldObj);
+            LOGGER.debug("received MODIFIED event : {}", event);
             resourceEvents.add(event);
           }
 
@@ -105,6 +107,7 @@ public abstract class AbstractCustomResourceController implements IController {
                     kind,
                     (CustomResource<? extends CommonSpec, CommonStatus>) obj,
                     null);
+            LOGGER.debug("received DELETED event : {}", event);
             resourceEvents.add(event);
           }
         });

@@ -49,10 +49,9 @@ public class CommonConstant {
   public static final String LABEL_VALUE_MANAGED_BY = "iotdb";
   public static final String LABEL_KEY_APP_KIND = "app-kind";
   public static final String LABEL_KEY_APP_NAME = "app-name";
+  public static final String LABEL_KEY_OPERATOR_VERSION = "operator-version";
 
   public static final String ANNOTATION_KEY_SHA = "cm-sha";
-  public static final String ANNOTATION_KEY_OPERATOR_VERSION = "operator-version";
-  // for rolling update
   public static final String ANNOTATION_KEY_PARTITION = "partition";
 
   public static final String VOLUME_SUFFIX_DATA = "-data";
