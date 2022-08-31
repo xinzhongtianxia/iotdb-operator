@@ -87,8 +87,6 @@ public abstract class AbstractCustomResourceController implements IController {
 
           @Override
           public void onUpdate(HasMetadata oldObj, HasMetadata newObj) {
-            // todo scaling and updating in the same time are not supported, we should do this
-            // check in the AdmissionValidationWebHook
             CustomResourceEvent event =
                 new CustomResourceEvent(
                     Action.MODIFIED,

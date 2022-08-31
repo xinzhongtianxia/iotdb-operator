@@ -165,7 +165,10 @@ public abstract class StartUpReconciler implements IReconciler {
         .put(CommonConstant.ANNOTATION_KEY_SHA, cmSha);
 
     StatefulSet statefulSet =
-        new StatefulSetBuilder().withMetadata(statefulSetMetadata).withSpec(statefulSetSpec).build();
+        new StatefulSetBuilder()
+            .withMetadata(statefulSetMetadata)
+            .withSpec(statefulSetSpec)
+            .build();
 
     OutputEventUtils.sendEvent(
         kind,
@@ -224,7 +227,7 @@ public abstract class StartUpReconciler implements IReconciler {
             .withName(subResourceName + CommonConstant.VOLUME_SUFFIX_DATA)
             .endMetadata()
             .withNewSpec()
-            .withAccessModes("ReadWriteOnce")
+            .withAccessModes("ReadWriteOncePod")
             .withStorageClassName(commonSpec.getStorage().getStorageClass())
             .withNewResources()
             .withLimits(resources)
