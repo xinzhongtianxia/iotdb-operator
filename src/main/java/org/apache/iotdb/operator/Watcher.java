@@ -31,9 +31,7 @@ public class Watcher {
 
   private final List<IController> controllers =
       Arrays.asList(
-          new StatefulSetController(),
-          new ConfigNodeController(),
-          new DataNodeController());
+          new StatefulSetController(), new ConfigNodeController(), new DataNodeController());
 
   public void start() {
     for (IController controller : controllers) {

@@ -60,9 +60,6 @@ public class Storage {
 
   @Override
   public String toString() {
-    return "Storage{" +
-        "storageClass='" + storageClass + '\'' +
-        ", limit=" + limit +
-        '}';
+    return "Storage{" + "storageClass='" + storageClass + '\'' + ", limit=" + limit + '}';
   }
 }

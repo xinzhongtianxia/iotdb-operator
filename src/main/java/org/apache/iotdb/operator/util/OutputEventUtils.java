@@ -19,20 +19,20 @@
 
 package org.apache.iotdb.operator.util;
 
-import com.fasterxml.jackson.core.JsonParser;
+import org.apache.iotdb.operator.KubernetesClientManager;
+import org.apache.iotdb.operator.crd.Kind;
+
 import io.fabric8.kubernetes.api.model.MicroTime;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.events.v1.Event;
 import io.fabric8.kubernetes.api.model.events.v1.EventBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import org.apache.iotdb.operator.KubernetesClientManager;
-import org.apache.iotdb.operator.crd.Kind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class OutputEventUtils {
   private static final Logger LOGGER = LoggerFactory.getLogger(OutputEventUtils.class);
@@ -75,7 +75,7 @@ public class OutputEventUtils {
             .withReason(reason)
             .withType(type)
             .build();
-    LOGGER.info(event.toString());
+    LOGGER.debug(event.toString());
     kubernetesClient.resource(event).inNamespace(meta.getNamespace()).create();
   }
 }
