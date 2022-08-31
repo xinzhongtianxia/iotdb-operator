@@ -38,9 +38,9 @@ spec:
         app: iotdb-operator
         app-managed-by: iotdb
     spec:
-      {{- if .Values.imagePullSecrets }}
+      {{- if .Values.imagePullSecret }}
       imagePullSecrets:
-        - name: {{ .Release.Name }}
+        - name: {{ .Values.imagePullSecret }}
       {{- end }}
       serviceAccountName: {{ .Release.Name }}
       securityContext:

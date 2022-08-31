@@ -19,7 +19,6 @@
 
 package org.apache.iotdb.operator.controller.reconciler.datanode;
 
-import org.apache.iotdb.operator.common.CommonConstant;
 import org.apache.iotdb.operator.common.STATE;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
@@ -59,7 +58,7 @@ public class DataNodeStatefulSetReconciler implements IReconciler {
         return;
       }
 
-      int available = status.getAvailableReplicas();
+      Integer available = status.getAvailableReplicas();
       int desired = spec.getReplicas();
 
       STATE state = available == desired ? STATE.READY : STATE.PENDING;

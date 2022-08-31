@@ -7,9 +7,9 @@ import org.apache.iotdb.operator.crd.DataNode;
 import org.apache.iotdb.operator.crd.DataNodeSpec;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
-import org.apache.iotdb.operator.util.OutputEventUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

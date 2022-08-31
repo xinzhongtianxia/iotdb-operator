@@ -29,6 +29,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}
+    namespace: {{ .Values.namespace }}
 roleRef:
   kind: Role
   name: {{ .Release.Name }}

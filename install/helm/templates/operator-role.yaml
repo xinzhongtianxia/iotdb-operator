@@ -57,11 +57,21 @@ rules:
       - update
       - delete
   - apiGroups:
+      - "events.k8s.io"
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - create
+      - patch
+      - update
+      - delete
+  - apiGroups:
       - ""
     resources:
       - services
       - configmaps
-      - events
       - persistentvolumeclaims
       - secrets
     verbs:
