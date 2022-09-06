@@ -26,7 +26,6 @@ import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeStar
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeUpdateReconciler;
 import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -43,15 +42,15 @@ public class ConfigNodeController extends AbstractCustomResourceController {
   }
 
   @Override
-  protected IReconciler getReconciler(BaseEvent event) {
+  protected IReconciler getReconciler(CustomResourceEvent event) {
     Action action = event.getAction();
     switch (action) {
       case ADDED:
-        return new ConfigNodeStartUpReconciler((CustomResourceEvent) event);
+        return new ConfigNodeStartUpReconciler(event);
       case DELETED:
-        return new ConfigNodeDeleteReconciler((CustomResourceEvent) event);
+        return new ConfigNodeDeleteReconciler(event);
       case MODIFIED:
-        return new ConfigNodeUpdateReconciler((CustomResourceEvent) event);
+        return new ConfigNodeUpdateReconciler(event);
       default:
         return new DefaultReconciler(event);
     }

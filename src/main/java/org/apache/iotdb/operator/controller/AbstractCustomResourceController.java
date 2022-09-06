@@ -25,10 +25,11 @@ import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.dsl.Informable;
@@ -119,7 +120,7 @@ public abstract class AbstractCustomResourceController implements IController {
         () -> {
           LOGGER.info("start dispatching {} events...", kind.getName());
           while (!Thread.interrupted()) {
-            BaseEvent event = null;
+            CustomResourceEvent event = null;
             try {
               event = resourceEvents.take();
               IReconciler reconciler = getReconciler(event);
@@ -132,12 +133,28 @@ public abstract class AbstractCustomResourceController implements IController {
               LOGGER.warn("thread has been interrupted!", e);
               Thread.currentThread().interrupt();
             } catch (Exception e) {
-              assert event != null;
-              LOGGER.error("event handle exception, eventId = {}", event.getEventId(), e);
+              handleReconcileException(event, e);
             }
           }
         });
   }
 
-  protected abstract IReconciler getReconciler(BaseEvent event);
+  private void handleReconcileException(CustomResourceEvent event, Exception e) {
+    String eventId = "UnKnown";
+    if (event != null) {
+      eventId = event.getEventId();
+      ObjectMeta meta = event.getResource().getMetadata();
+      OutputEventUtils.sendEvent(
+          kind,
+          OutputEventUtils.EVENT_TYPE_WARNING,
+          "event_reconcile_" + event.getAction().name(),
+          meta,
+          e.getCause().toString(),
+          "Exception",
+          kind.getName());
+    }
+    LOGGER.error("event handle exception, eventId = {}", eventId, e);
+  }
+
+  protected abstract IReconciler getReconciler(CustomResourceEvent event);
 }

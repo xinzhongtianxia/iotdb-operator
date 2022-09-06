@@ -384,7 +384,8 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             .withName("rest")
             .build();
 
-    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
+    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)
+        || serviceType.equals(CommonConstant.SERVICE_TYPE_LOAD_BALANCER)) {
       rpcServicePort.setNodePort(dataNodeConfig.getRpcNodePort());
       restServicePort.setNodePort(dataNodeConfig.getRestNodePort());
     }
@@ -414,8 +415,9 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
     }
 
     // set service type to NodePort if needed
-    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
-      externalService.getSpec().setType(CommonConstant.SERVICE_TYPE_NODE_PORT);
+    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)
+        || serviceType.equals(CommonConstant.SERVICE_TYPE_LOAD_BALANCER)) {
+      externalService.getSpec().setType(serviceType);
 
       // if there is already a service with the specific node port, delete it first
       Service service =

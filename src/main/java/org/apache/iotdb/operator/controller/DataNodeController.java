@@ -7,7 +7,6 @@ import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeStartUpR
 import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeUpdateReconciler;
 import org.apache.iotdb.operator.crd.DataNode;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -20,15 +19,15 @@ public class DataNodeController extends AbstractCustomResourceController {
   }
 
   @Override
-  protected IReconciler getReconciler(BaseEvent event) {
+  protected IReconciler getReconciler(CustomResourceEvent event) {
     Action action = event.getAction();
     switch (action) {
       case ADDED:
-        return new DataNodeStartUpReconciler((CustomResourceEvent) event);
+        return new DataNodeStartUpReconciler(event);
       case DELETED:
-        return new DataNodeDeleteReconciler((CustomResourceEvent) event);
+        return new DataNodeDeleteReconciler(event);
       case MODIFIED:
-        return new DataNodeUpdateReconciler((CustomResourceEvent) event);
+        return new DataNodeUpdateReconciler(event);
       default:
         return new DefaultReconciler(event);
     }
