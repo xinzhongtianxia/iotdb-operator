@@ -28,6 +28,7 @@ public class CommonConstant {
 
   public static final String SERVICE_TYPE_CLUSTER_IP = "ClusterIP";
   public static final String SERVICE_TYPE_NODE_PORT = "NodePort";
+  public static final String SERVICE_TYPE_LOAD_BALANCER = "LoadBalancer";
   public static final String SERVICE_EXTERNAL_TRAFFIC_POLICY_LOCAL = "Local";
   public static final String SERVICE_EXTERNAL_TRAFFIC_POLICY_CLUSTER = "Cluster";
 

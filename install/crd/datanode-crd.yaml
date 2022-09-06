@@ -97,7 +97,8 @@ spec:
                       enum:
                         - NodePort
                         - ClusterIP
-                      description: The type of RPC port serves IoTDB-client, defaults to ClusterIP.
+                        - LoadBalancer
+                      description: The type of services, defaults to ClusterIP.
                     externalTrafficPolicy:
                       type: string
                       enum:
