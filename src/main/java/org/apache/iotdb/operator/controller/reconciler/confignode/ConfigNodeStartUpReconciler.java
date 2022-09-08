@@ -96,7 +96,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
         });
 
     String configNodeProperties = sb.toString();
-    LOGGER.info(
+    LOGGER.debug(
         "========== iotdb-confignode.properties : ============  \n {}", configNodeProperties);
     configFiles.put(CommonConstant.CONFIG_NODE_PROPERTY_FILE_NAME, configNodeProperties);
 
@@ -110,7 +110,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
                         + File.separator
                         + CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME),
             Charset.defaultCharset());
-    LOGGER.info("========== confignode-init.sh : ============  : \n {}", scriptContent);
+    LOGGER.debug("========== confignode-init.sh : ============  : \n {}", scriptContent);
     configFiles.put(CommonConstant.CONFIG_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
     return configFiles;
   }
@@ -215,7 +215,7 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
   }
 
   @Override
-  protected void createServices() {
+  public Map<String, Service> createServices() {
     int consensusPort = configNodeConfig.getConsensusPort();
     ServicePort consensusServicePort =
         new ServicePortBuilder()
@@ -292,6 +292,10 @@ public class ConfigNodeStartUpReconciler extends StartUpReconciler {
             + CommonConstant.SERVICE_SUFFIX_EXTERNAL,
         "Created",
         Kind.SERVICE.getName());
+    Map<String, Service> serviceMap = new HashMap<>(2);
+    serviceMap.put(internalService.getMetadata().getName(), internalService);
+    serviceMap.put(externalService.getMetadata().getName(), externalService);
+    return serviceMap;
   }
 
   @Override

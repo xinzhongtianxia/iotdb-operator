@@ -76,6 +76,10 @@ public class OutputEventUtils {
             .withType(type)
             .build();
     LOGGER.debug(event.toString());
-    kubernetesClient.resource(event).inNamespace(meta.getNamespace()).create();
+    try {
+      kubernetesClient.resource(event).inNamespace(meta.getNamespace()).create();
+    } catch (Exception e) {
+      LOGGER.error("exception when patch event, event = {}", event, e);
+    }
   }
 }

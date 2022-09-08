@@ -25,10 +25,10 @@ import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonSpec;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.Kind;
-import org.apache.iotdb.operator.event.BaseEvent;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
+import org.apache.iotdb.operator.util.OutputEventUtils;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.dsl.Informable;
@@ -58,7 +58,7 @@ public abstract class AbstractCustomResourceController implements IController {
 
   @Override
   public void startWatch() {
-    Informable<? extends HasMetadata> informable;
+    Informable<? extends CustomResource<? extends CommonSpec, CommonStatus>> informable;
 
     String scope = IoTDBOperatorConfig.getInstance().getScope();
     if (scope.equals(CommonConstant.SCOPE_NAMESPACE)) {
@@ -70,15 +70,10 @@ public abstract class AbstractCustomResourceController implements IController {
 
     LOGGER.info("start watch {} resources...", kind.getName());
     informable.inform(
-        new ResourceEventHandler<HasMetadata>() {
+        new ResourceEventHandler<CustomResource<? extends CommonSpec, CommonStatus>>() {
           @Override
-          public void onAdd(HasMetadata obj) {
-            CustomResourceEvent event =
-                new CustomResourceEvent(
-                    Action.ADDED,
-                    kind,
-                    (CustomResource<? extends CommonSpec, CommonStatus>) obj,
-                    null);
+          public void onAdd(CustomResource<? extends CommonSpec, CommonStatus> obj) {
+            CustomResourceEvent event = new CustomResourceEvent(Action.ADDED, kind, obj, null);
             if (!event.isSyntheticAdded()) {
               LOGGER.debug("received ADDED event : {}", event);
               resourceEvents.add(event);
@@ -86,32 +81,28 @@ public abstract class AbstractCustomResourceController implements IController {
           }
 
           @Override
-          public void onUpdate(HasMetadata oldObj, HasMetadata newObj) {
+          public void onUpdate(
+              CustomResource<? extends CommonSpec, CommonStatus> oldObj,
+              CustomResource<? extends CommonSpec, CommonStatus> newObj) {
             CustomResourceEvent event =
-                new CustomResourceEvent(
-                    Action.MODIFIED,
-                    kind,
-                    (CustomResource<? extends CommonSpec, CommonStatus>) newObj,
-                    (CustomResource<? extends CommonSpec, CommonStatus>) oldObj);
+                new CustomResourceEvent(Action.MODIFIED, kind, newObj, oldObj);
             LOGGER.debug("received MODIFIED event : {}", event);
             resourceEvents.add(event);
           }
 
           @Override
-          public void onDelete(HasMetadata obj, boolean deletedFinalStateUnknown) {
-            CustomResourceEvent event =
-                new CustomResourceEvent(
-                    Action.DELETED,
-                    kind,
-                    (CustomResource<? extends CommonSpec, CommonStatus>) obj,
-                    null);
+          public void onDelete(
+              CustomResource<? extends CommonSpec, CommonStatus> obj,
+              boolean deletedFinalStateUnknown) {
+            CustomResourceEvent event = new CustomResourceEvent(Action.DELETED, kind, obj, null);
             LOGGER.debug("received DELETED event : {}", event);
             resourceEvents.add(event);
           }
         });
   }
 
-  protected abstract Class<? extends HasMetadata> getResourceType();
+  protected abstract Class<? extends CustomResource<? extends CommonSpec, CommonStatus>>
+      getResourceType();
 
   @Override
   public void startDispatch() {
@@ -119,7 +110,7 @@ public abstract class AbstractCustomResourceController implements IController {
         () -> {
           LOGGER.info("start dispatching {} events...", kind.getName());
           while (!Thread.interrupted()) {
-            BaseEvent event = null;
+            CustomResourceEvent event = null;
             try {
               event = resourceEvents.take();
               IReconciler reconciler = getReconciler(event);
@@ -132,12 +123,28 @@ public abstract class AbstractCustomResourceController implements IController {
               LOGGER.warn("thread has been interrupted!", e);
               Thread.currentThread().interrupt();
             } catch (Exception e) {
-              assert event != null;
-              LOGGER.error("event handle exception, eventId = {}", event.getEventId(), e);
+              handleReconcileException(event, e);
             }
           }
         });
   }
 
-  protected abstract IReconciler getReconciler(BaseEvent event);
+  private void handleReconcileException(CustomResourceEvent event, Exception e) {
+    String eventId = "UnKnown";
+    if (event != null) {
+      eventId = event.getEventId();
+      ObjectMeta meta = event.getResource().getMetadata();
+      OutputEventUtils.sendEvent(
+          kind,
+          OutputEventUtils.EVENT_TYPE_WARNING,
+          "event_reconcile_" + event.getAction().name(),
+          meta,
+          e.getCause().toString(),
+          "Exception",
+          kind.getName());
+    }
+    LOGGER.error("event handle exception, eventId = {}", eventId, e);
+  }
+
+  protected abstract IReconciler getReconciler(CustomResourceEvent event);
 }

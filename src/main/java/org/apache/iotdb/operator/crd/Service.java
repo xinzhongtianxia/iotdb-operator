@@ -1,11 +1,9 @@
 package org.apache.iotdb.operator.crd;
 
-import java.util.Objects;
-
 public class Service {
 
-  private String type;
-  private String externalTrafficPolicy;
+  private String type = "ClusterIp";
+  private String externalTrafficPolicy = "Cluster";
 
   public String getType() {
     return type;
@@ -24,16 +22,14 @@ public class Service {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Service service = (Service) o;
-    return Objects.equals(type, service.type)
-        && Objects.equals(externalTrafficPolicy, service.externalTrafficPolicy);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(type, externalTrafficPolicy);
+  public String toString() {
+    return "Service{"
+        + "type='"
+        + type
+        + '\''
+        + ", externalTrafficPolicy='"
+        + externalTrafficPolicy
+        + '\''
+        + '}';
   }
 }

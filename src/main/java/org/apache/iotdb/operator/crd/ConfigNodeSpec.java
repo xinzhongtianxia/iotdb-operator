@@ -30,4 +30,9 @@ public class ConfigNodeSpec extends CommonSpec {
   public void setIotdbConfig(IoTDBConfigNodeConfig iotdbConfig) {
     this.iotdbConfig = iotdbConfig;
   }
+
+  @Override
+  public String toString() {
+    return "ConfigNodeSpec{" + "iotdbConfig=" + iotdbConfig + "} " + super.toString();
+  }
 }
