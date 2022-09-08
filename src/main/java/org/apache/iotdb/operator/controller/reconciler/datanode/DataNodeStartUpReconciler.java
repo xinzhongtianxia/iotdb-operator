@@ -63,7 +63,6 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
       return true;
     }
     // todo check if confignode is running
-
     return false;
   }
 
@@ -95,7 +94,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         });
 
     String dataNodeProperties = sb.toString();
-    LOGGER.info("========== iotdb-datanode.properties : ============ \n {}", dataNodeProperties);
+    LOGGER.debug("========== iotdb-datanode.properties : ============ \n {}", dataNodeProperties);
     configFiles.put(CommonConstant.DATA_NODE_PROPERTY_FILE_NAME, dataNodeProperties);
 
     // construct iotdb-rest.properties
@@ -108,7 +107,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         .append("rest_service_port=")
         .append(dataNodeConfig.getRestPort());
     String restConfig = restConfigSb.toString();
-    LOGGER.info("========== iotdb-rest.properties : ============ \n {}", restConfig);
+    LOGGER.debug("========== iotdb-rest.properties : ============ \n {}", restConfig);
     configFiles.put(CommonConstant.DATA_NODE_REST_PROPERTY_FILE_NAME, restConfig);
 
     // read init script into ConfigMap
@@ -121,7 +120,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
                         + File.separator
                         + CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME),
             Charset.defaultCharset());
-    LOGGER.info("========== datanode-init.sh : ============ : \n {}", scriptContent);
+    LOGGER.debug("========== datanode-init.sh : ============ : \n {}", scriptContent);
     configFiles.put(CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
     return configFiles;
   }
@@ -287,7 +286,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
   }
 
   @Override
-  protected void createServices() {
+  public Map<String, Service> createServices() {
 
     // port for outputting metrics data
     int metricPort = dataNodeConfig.getMetricPort();
@@ -384,7 +383,8 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             .withName("rest")
             .build();
 
-    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
+    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)
+        || serviceType.equals(CommonConstant.SERVICE_TYPE_LOAD_BALANCER)) {
       rpcServicePort.setNodePort(dataNodeConfig.getRpcNodePort());
       restServicePort.setNodePort(dataNodeConfig.getRestNodePort());
     }
@@ -414,8 +414,9 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
     }
 
     // set service type to NodePort if needed
-    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)) {
-      externalService.getSpec().setType(CommonConstant.SERVICE_TYPE_NODE_PORT);
+    if (serviceType.equals(CommonConstant.SERVICE_TYPE_NODE_PORT)
+        || serviceType.equals(CommonConstant.SERVICE_TYPE_LOAD_BALANCER)) {
+      externalService.getSpec().setType(serviceType);
 
       // if there is already a service with the specific node port, delete it first
       Service service =
@@ -454,5 +455,9 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             + CommonConstant.SERVICE_SUFFIX_EXTERNAL,
         "Created",
         Kind.SERVICE.getName());
+    Map<String, Service> serviceMap = new HashMap<>(2);
+    serviceMap.put(internalService.getMetadata().getName(), internalService);
+    serviceMap.put(externalService.getMetadata().getName(), externalService);
+    return serviceMap;
   }
 }

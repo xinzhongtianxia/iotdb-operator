@@ -41,7 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public abstract class UpdateReconciler implements IReconciler {
+public abstract class UpdateReconciler extends AbstractReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(UpdateReconciler.class);
 
   protected final ObjectMeta meta;
@@ -60,7 +60,7 @@ public abstract class UpdateReconciler implements IReconciler {
     updateStatefulSet(configMap);
   }
 
-  protected ConfigMap updateConfigMap() throws IOException {
+  public ConfigMap updateConfigMap() throws IOException {
 
     ConfigMap configMap =
         kubernetesClient
@@ -96,7 +96,7 @@ public abstract class UpdateReconciler implements IReconciler {
     return configMap;
   }
 
-  protected void updateStatefulSet(ConfigMap configMap) {
+  public StatefulSet updateStatefulSet(ConfigMap configMap) {
     StatefulSet statefulSet =
         kubernetesClient
             .apps()
@@ -155,6 +155,7 @@ public abstract class UpdateReconciler implements IReconciler {
     } else {
       LOGGER.warn("no need to update statefulset newSpec = {}", newSpec);
     }
+    return statefulSet;
   }
 
   private boolean needPatchPartition(StatefulSet statefulSet) {

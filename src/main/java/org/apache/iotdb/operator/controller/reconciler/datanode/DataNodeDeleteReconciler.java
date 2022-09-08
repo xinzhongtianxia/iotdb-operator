@@ -21,7 +21,7 @@ public class DataNodeDeleteReconciler extends DeleteReconciler {
   }
 
   @Override
-  protected void deleteCustomResource() {
+  public void deleteCustomResource() {
     kubernetesClient
         .resources(DataNode.class)
         .inNamespace(metadata.getNamespace())

@@ -19,16 +19,10 @@
 
 package org.apache.iotdb.operator.controller.reconciler;
 
-import org.apache.iotdb.operator.KubernetesClientManager;
-
-import io.fabric8.kubernetes.client.KubernetesClient;
-
 import java.io.IOException;
 
 /** All reconcilers should implement this interface. */
 public interface IReconciler {
-  KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
-
   /**
    * The entry of reconciler
    *

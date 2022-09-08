@@ -19,32 +19,24 @@
 
 package org.apache.iotdb.operator.crd;
 
-import io.fabric8.kubernetes.api.model.ObjectMeta;
+public class LimitsBuilder {
+  private Limits limits;
 
-public class DataNodeBuilder {
-
-  private DataNode dataNode;
-
-  public DataNodeBuilder() {
-    dataNode = new DataNode();
+  public LimitsBuilder() {
+    limits = new Limits();
   }
 
-  public DataNodeBuilder withStatus(CommonStatus commonStatus) {
-    dataNode.setStatus(commonStatus);
+  public LimitsBuilder withCpu(int cpu) {
+    limits.setCpu(cpu);
     return this;
   }
 
-  public DataNodeBuilder withSpec(DataNodeSpec spec) {
-    dataNode.setSpec(spec);
+  public LimitsBuilder withMemory(int memory) {
+    limits.setMemory(memory);
     return this;
   }
 
-  public DataNodeBuilder withMetadata(ObjectMeta metadata) {
-    dataNode.setMetadata(metadata);
-    return this;
-  }
-
-  public DataNode build() {
-    return dataNode;
+  public Limits build() {
+    return limits;
   }
 }

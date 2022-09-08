@@ -17,34 +17,13 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.crd;
+package org.apache.iotdb.operator.util;
 
-import io.fabric8.kubernetes.api.model.ObjectMeta;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class DataNodeBuilder {
-
-  private DataNode dataNode;
-
-  public DataNodeBuilder() {
-    dataNode = new DataNode();
-  }
-
-  public DataNodeBuilder withStatus(CommonStatus commonStatus) {
-    dataNode.setStatus(commonStatus);
-    return this;
-  }
-
-  public DataNodeBuilder withSpec(DataNodeSpec spec) {
-    dataNode.setSpec(spec);
-    return this;
-  }
-
-  public DataNodeBuilder withMetadata(ObjectMeta metadata) {
-    dataNode.setMetadata(metadata);
-    return this;
-  }
-
-  public DataNode build() {
-    return dataNode;
-  }
-}
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+public @interface TestOnly {}

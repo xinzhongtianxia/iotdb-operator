@@ -23,40 +23,28 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 
 public class ConfigNodeBuilder {
 
-  private CommonStatus commonStatus;
+  private ConfigNode configNode;
 
-  private ConfigNodeSpec spec;
-
-  private ObjectMeta metadata;
-
-  public ConfigNodeBuilder() {}
+  public ConfigNodeBuilder() {
+    configNode = new ConfigNode();
+  }
 
   public ConfigNodeBuilder withStatus(CommonStatus commonStatus) {
-    this.commonStatus = commonStatus;
+    configNode.setStatus(commonStatus);
     return this;
   }
 
   public ConfigNodeBuilder withSpec(ConfigNodeSpec spec) {
-    this.spec = spec;
+    configNode.setSpec(spec);
     return this;
   }
 
   public ConfigNodeBuilder withMetadata(ObjectMeta metadata) {
-    this.metadata = metadata;
+    configNode.setMetadata(metadata);
     return this;
   }
 
   public ConfigNode build() {
-    ConfigNode configNode = new ConfigNode();
-    if (commonStatus != null) {
-      configNode.setStatus(commonStatus);
-    }
-    if (spec != null) {
-      configNode.setSpec(spec);
-    }
-    if (metadata != null) {
-      configNode.setMetadata(metadata);
-    }
     return configNode;
   }
 }
