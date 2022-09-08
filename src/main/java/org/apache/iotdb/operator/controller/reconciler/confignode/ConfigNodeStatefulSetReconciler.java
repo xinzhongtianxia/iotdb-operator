@@ -20,6 +20,7 @@
 package org.apache.iotdb.operator.controller.reconciler.confignode;
 
 import org.apache.iotdb.operator.common.STATE;
+import org.apache.iotdb.operator.controller.reconciler.AbstractReconciler;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNode;
@@ -42,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *   <li>cleaning pvcs created by sts when the sts has been deleted
  * </ol>
  */
-public class ConfigNodeStatefulSetReconciler implements IReconciler {
+public class ConfigNodeStatefulSetReconciler extends AbstractReconciler implements IReconciler {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(ConfigNodeStatefulSetReconciler.class);
 

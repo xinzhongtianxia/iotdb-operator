@@ -19,32 +19,24 @@
 
 package org.apache.iotdb.operator.crd;
 
-import io.fabric8.kubernetes.api.model.ObjectMeta;
+public class StorageBuilder {
+  private Storage storage;
 
-public class DataNodeBuilder {
-
-  private DataNode dataNode;
-
-  public DataNodeBuilder() {
-    dataNode = new DataNode();
+  public StorageBuilder() {
+    storage = new Storage();
   }
 
-  public DataNodeBuilder withStatus(CommonStatus commonStatus) {
-    dataNode.setStatus(commonStatus);
+  public StorageBuilder withLimit(int limit) {
+    storage.setLimit(limit);
     return this;
   }
 
-  public DataNodeBuilder withSpec(DataNodeSpec spec) {
-    dataNode.setSpec(spec);
+  public StorageBuilder withStorageClass(String storageClass) {
+    storage.setStorageClass(storageClass);
     return this;
   }
 
-  public DataNodeBuilder withMetadata(ObjectMeta metadata) {
-    dataNode.setMetadata(metadata);
-    return this;
-  }
-
-  public DataNode build() {
-    return dataNode;
+  public Storage build() {
+    return storage;
   }
 }

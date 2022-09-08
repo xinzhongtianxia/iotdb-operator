@@ -37,4 +37,9 @@ public class IoTDBDataNodeConfig {
   public int hashCode() {
     return Objects.hash(dataNodeProperties);
   }
+
+  @Override
+  public String toString() {
+    return "IoTDBDataNodeConfig{" + "dataNodeProperties=" + dataNodeProperties + '}';
+  }
 }

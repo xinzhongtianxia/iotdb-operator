@@ -20,6 +20,7 @@
 package org.apache.iotdb.operator.controller.reconciler.datanode;
 
 import org.apache.iotdb.operator.common.STATE;
+import org.apache.iotdb.operator.controller.reconciler.AbstractReconciler;
 import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.DataNode;
@@ -34,7 +35,7 @@ import io.fabric8.kubernetes.client.dsl.Deletable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DataNodeStatefulSetReconciler implements IReconciler {
+public class DataNodeStatefulSetReconciler extends AbstractReconciler implements IReconciler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DataNodeStatefulSetReconciler.class);
 

@@ -61,4 +61,9 @@ public class IoTDBConfigNodeConfig {
   public int hashCode() {
     return Objects.hash(configNodeProperties);
   }
+
+  @Override
+  public String toString() {
+    return "IoTDBConfigNodeConfig{" + "configNodeProperties=" + configNodeProperties + '}';
+  }
 }

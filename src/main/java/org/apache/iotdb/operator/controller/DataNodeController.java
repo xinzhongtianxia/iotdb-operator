@@ -5,11 +5,13 @@ import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeDeleteReconciler;
 import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeStartUpReconciler;
 import org.apache.iotdb.operator.controller.reconciler.datanode.DataNodeUpdateReconciler;
+import org.apache.iotdb.operator.crd.CommonSpec;
+import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.DataNode;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.Watcher.Action;
 
 public class DataNodeController extends AbstractCustomResourceController {
@@ -34,7 +36,7 @@ public class DataNodeController extends AbstractCustomResourceController {
   }
 
   @Override
-  protected Class<? extends HasMetadata> getResourceType() {
+  protected Class<? extends CustomResource<? extends CommonSpec, CommonStatus>> getResourceType() {
     return DataNode.class;
   }
 }
