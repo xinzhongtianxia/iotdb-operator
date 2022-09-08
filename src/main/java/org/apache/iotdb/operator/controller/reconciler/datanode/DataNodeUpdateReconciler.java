@@ -32,25 +32,24 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
     // todo there should be an admission-validation-web-hook to prevent changing immutable configs
     // replace below hard-code by web hook
     ((DataNodeSpec) newSpec).setMode(((DataNodeSpec) event.getOldResource().getSpec()).getMode());
-    if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)
-        && newSpec.getReplicas() != 1) {
-      LOGGER.warn(
-          "replicas has been set to {}, but in STANDALONE mode, replicas should always be 1 !!! Now"
-              + "we set it to 1",
-          newSpec.getReplicas());
-      newSpec.setReplicas(1);
+    if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
+      if (newSpec.getReplicas() != 1) {
+        LOGGER.warn(
+            "replicas has been set to {}, but in STANDALONE mode, replicas should always be 1 !!! Now"
+                + "we set it to 1",
+            newSpec.getReplicas());
+        newSpec.setReplicas(1);
+      }
     } else {
       int newReplicas = newSpec.getReplicas();
       if (newReplicas < 3) {
         int oldReplica = event.getOldResource().getSpec().getReplicas();
-        if (newReplicas != oldReplica) {
-          LOGGER.warn(
-              "replicas has been set to {}, but in STANDALONE mode, replicas should always be "
-                  + "bigger than or equals to 3 !!!  Now we set it to its current value {}",
-              oldReplica,
-              newReplicas);
-          newSpec.setReplicas(oldReplica);
-        }
+        LOGGER.warn(
+            "replicas has been set to {}, but in CLUSTER mode, replicas should always be "
+                + "bigger than or equals to 3 !!!  Now we set it to its old value : {}",
+            newReplicas,
+            oldReplica);
+        newSpec.setReplicas(oldReplica);
       }
     }
   }
@@ -113,6 +112,7 @@ public class DataNodeUpdateReconciler extends UpdateReconciler {
 
     int oldPropertySize = properties.size() - dataNodeConfig.getDefaultProperties().size();
     if (((DataNodeSpec) newSpec).getMode().equals(CommonConstant.DATA_NODE_MODE_STANDALONE)) {
+      // we will set `target_config_node` only in cluster mode
       oldPropertySize += 1;
     }
     if (newProperties.size() != oldPropertySize) {

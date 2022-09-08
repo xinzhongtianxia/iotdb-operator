@@ -17,34 +17,18 @@
  *     under the License.
  */
 
-package org.apache.iotdb.operator.crd;
+package org.apache.iotdb.operator.controller.reconciler;
 
-import io.fabric8.kubernetes.api.model.ObjectMeta;
+import org.apache.iotdb.operator.KubernetesClientManager;
+import org.apache.iotdb.operator.util.TestOnly;
 
-public class DataNodeBuilder {
+import io.fabric8.kubernetes.client.KubernetesClient;
 
-  private DataNode dataNode;
+public class AbstractReconciler {
+  protected KubernetesClient kubernetesClient = KubernetesClientManager.getInstance().getClient();
 
-  public DataNodeBuilder() {
-    dataNode = new DataNode();
-  }
-
-  public DataNodeBuilder withStatus(CommonStatus commonStatus) {
-    dataNode.setStatus(commonStatus);
-    return this;
-  }
-
-  public DataNodeBuilder withSpec(DataNodeSpec spec) {
-    dataNode.setSpec(spec);
-    return this;
-  }
-
-  public DataNodeBuilder withMetadata(ObjectMeta metadata) {
-    dataNode.setMetadata(metadata);
-    return this;
-  }
-
-  public DataNode build() {
-    return dataNode;
+  @TestOnly
+  public void setKubernetesClient(KubernetesClient kubernetesClient) {
+    this.kubernetesClient = kubernetesClient;
   }
 }

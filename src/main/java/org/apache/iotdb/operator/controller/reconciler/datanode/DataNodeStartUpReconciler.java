@@ -63,7 +63,6 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
       return true;
     }
     // todo check if confignode is running
-
     return false;
   }
 
@@ -95,7 +94,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         });
 
     String dataNodeProperties = sb.toString();
-    LOGGER.info("========== iotdb-datanode.properties : ============ \n {}", dataNodeProperties);
+    LOGGER.debug("========== iotdb-datanode.properties : ============ \n {}", dataNodeProperties);
     configFiles.put(CommonConstant.DATA_NODE_PROPERTY_FILE_NAME, dataNodeProperties);
 
     // construct iotdb-rest.properties
@@ -108,7 +107,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
         .append("rest_service_port=")
         .append(dataNodeConfig.getRestPort());
     String restConfig = restConfigSb.toString();
-    LOGGER.info("========== iotdb-rest.properties : ============ \n {}", restConfig);
+    LOGGER.debug("========== iotdb-rest.properties : ============ \n {}", restConfig);
     configFiles.put(CommonConstant.DATA_NODE_REST_PROPERTY_FILE_NAME, restConfig);
 
     // read init script into ConfigMap
@@ -121,7 +120,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
                         + File.separator
                         + CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME),
             Charset.defaultCharset());
-    LOGGER.info("========== datanode-init.sh : ============ : \n {}", scriptContent);
+    LOGGER.debug("========== datanode-init.sh : ============ : \n {}", scriptContent);
     configFiles.put(CommonConstant.DATA_NODE_INIT_SCRIPT_FILE_NAME, scriptContent);
     return configFiles;
   }
@@ -287,7 +286,7 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
   }
 
   @Override
-  protected void createServices() {
+  public Map<String, Service> createServices() {
 
     // port for outputting metrics data
     int metricPort = dataNodeConfig.getMetricPort();
@@ -456,5 +455,9 @@ public class DataNodeStartUpReconciler extends StartUpReconciler {
             + CommonConstant.SERVICE_SUFFIX_EXTERNAL,
         "Created",
         Kind.SERVICE.getName());
+    Map<String, Service> serviceMap = new HashMap<>(2);
+    serviceMap.put(internalService.getMetadata().getName(), internalService);
+    serviceMap.put(externalService.getMetadata().getName(), externalService);
+    return serviceMap;
   }
 }

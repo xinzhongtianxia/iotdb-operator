@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class DeleteReconciler implements IReconciler {
+public abstract class DeleteReconciler extends AbstractReconciler implements IReconciler {
   private static final Logger LOGGER = LoggerFactory.getLogger(DeleteReconciler.class);
 
   protected final CommonSpec commonSpec;
@@ -51,9 +51,9 @@ public abstract class DeleteReconciler implements IReconciler {
     deleteCustomResource();
   }
 
-  protected abstract void deleteCustomResource();
+  public abstract void deleteCustomResource();
 
-  private void deleteStatefulset() {
+  public void deleteStatefulset() {
     kubernetesClient
         .apps()
         .statefulSets()
@@ -63,7 +63,7 @@ public abstract class DeleteReconciler implements IReconciler {
     LOGGER.info("statefulset deleted : {}", subResourceName);
   }
 
-  private void deleteConfigMap() {
+  public void deleteConfigMap() {
     kubernetesClient
         .configMaps()
         .inNamespace(metadata.getNamespace())
@@ -72,7 +72,7 @@ public abstract class DeleteReconciler implements IReconciler {
     LOGGER.info("configmap deleted : {}", subResourceName);
   }
 
-  private void deleteService() {
+  public void deleteService() {
     // delete externalService
     kubernetesClient
         .services()

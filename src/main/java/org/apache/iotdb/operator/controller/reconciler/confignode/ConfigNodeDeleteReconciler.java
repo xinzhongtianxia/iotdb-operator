@@ -40,7 +40,7 @@ public class ConfigNodeDeleteReconciler extends DeleteReconciler {
   }
 
   @Override
-  protected void deleteCustomResource() {
+  public void deleteCustomResource() {
     kubernetesClient
         .resources(ConfigNode.class)
         .inNamespace(metadata.getNamespace())

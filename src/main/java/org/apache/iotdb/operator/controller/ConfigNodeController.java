@@ -24,11 +24,13 @@ import org.apache.iotdb.operator.controller.reconciler.IReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeDeleteReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeStartUpReconciler;
 import org.apache.iotdb.operator.controller.reconciler.confignode.ConfigNodeUpdateReconciler;
+import org.apache.iotdb.operator.crd.CommonSpec;
+import org.apache.iotdb.operator.crd.CommonStatus;
 import org.apache.iotdb.operator.crd.ConfigNode;
 import org.apache.iotdb.operator.crd.Kind;
 import org.apache.iotdb.operator.event.CustomResourceEvent;
 
-import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.client.Watcher.Action;
 
 /**
@@ -57,7 +59,7 @@ public class ConfigNodeController extends AbstractCustomResourceController {
   }
 
   @Override
-  protected Class<? extends HasMetadata> getResourceType() {
+  protected Class<? extends CustomResource<? extends CommonSpec, CommonStatus>> getResourceType() {
     return ConfigNode.class;
   }
 }

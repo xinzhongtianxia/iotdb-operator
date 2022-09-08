@@ -55,6 +55,7 @@ import io.fabric8.kubernetes.api.model.PodTemplateSpecBuilder;
 import io.fabric8.kubernetes.api.model.Probe;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.ResourceRequirements;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeBuilder;
 import io.fabric8.kubernetes.api.model.VolumeMount;
@@ -75,7 +76,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public abstract class StartUpReconciler implements IReconciler {
+public abstract class StartUpReconciler extends AbstractReconciler implements IReconciler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StartUpReconciler.class);
 
@@ -115,7 +116,7 @@ public abstract class StartUpReconciler implements IReconciler {
   /** Create files that need to be mounted to container via ConfigMap. */
   protected abstract Map<String, String> createConfigFiles() throws IOException;
 
-  private ConfigMap createConfigMap() throws IOException {
+  public ConfigMap createConfigMap() throws IOException {
 
     Map<String, String> configFiles = createConfigFiles();
 
@@ -138,17 +139,18 @@ public abstract class StartUpReconciler implements IReconciler {
         "Created",
         Kind.CONFIG_MAP.getName());
 
-    return kubernetesClient
+    kubernetesClient
         .configMaps()
         .inNamespace(metadata.getNamespace())
         .resource(configMap)
         .createOrReplace();
+    return configMap;
   }
 
   /** Common labels that need to be attached to iotdb resources. */
   protected abstract Map<String, String> getLabels();
 
-  protected void createStatefulSet(ConfigMap configMap) {
+  public StatefulSet createStatefulSet(ConfigMap configMap) {
     // metadata
     ObjectMeta statefulSetMetadata = createMetadata();
 
@@ -185,6 +187,7 @@ public abstract class StartUpReconciler implements IReconciler {
         .inNamespace(metadata.getNamespace())
         .resource(statefulSet)
         .createOrReplace();
+    return statefulSet;
   }
 
   private StatefulSetSpec createStatefulsetSpec() {
@@ -230,7 +233,6 @@ public abstract class StartUpReconciler implements IReconciler {
             .withAccessModes("ReadWriteOncePod")
             .withStorageClassName(commonSpec.getStorage().getStorageClass())
             .withNewResources()
-            .withLimits(resources)
             .withRequests(resources)
             .endResources()
             .endSpec()
@@ -402,7 +404,7 @@ public abstract class StartUpReconciler implements IReconciler {
     return new AffinityBuilder().withPodAntiAffinity(podAntiAffinity).build();
   }
 
-  protected abstract void createServices();
+  public abstract Map<String, Service> createServices();
 
   protected void createIngress(String name, String namespace) {}
 }

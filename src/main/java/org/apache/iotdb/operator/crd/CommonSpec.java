@@ -96,6 +96,8 @@ public class CommonSpec {
         + '\''
         + ", replicas="
         + replicas
+        + ", enableSafeDeploy="
+        + enableSafeDeploy
         + ", podDistributeStrategy='"
         + podDistributeStrategy
         + '\''
